@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="zh-CN" class="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}管理端 - 食品外包装文字识别检测系统{% endblock %}</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "on-error": "#ffffff",
+                    "surface-bright": "#f8f9ff",
+                    "surface-dim": "#cbdbf5",
+                    "error-container": "#ffdad6",
+                    "primary-fixed": "#a4f2d8",
+                    "primary": "#166a56",
+                    "on-surface-variant": "#3f4945",
+                    "surface-variant": "#d3e4fe",
+                    "inverse-surface": "#213145",
+                    "on-surface": "#0b1c30",
+                    "surface": "#f8f9ff",
+                    "primary-fixed-dim": "#89d5bc",
+                    "primary-container": "#58a48d",
+                    "tertiary-container": "#cd8700",
+                    "surface-container-lowest": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "surface-container-high": "#dce9ff",
+                    "background": "#f8f9ff",
+                    "secondary-container": "#68abff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-background": "#0b1c30",
+                    "outline-variant": "#bec9c3",
+                    "on-secondary": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "on-secondary-fixed": "#001c39",
+                    "on-tertiary-container": "#432900",
+                    "tertiary-fixed": "#ffddb4",
+                    "on-primary-fixed-variant": "#005140",
+                    "surface-container-low": "#eff4ff",
+                    "outline": "#6f7975",
+                    "on-secondary-container": "#003e73",
+                    "surface-tint": "#166a56",
+                    "on-tertiary-fixed": "#291800",
+                    "on-primary-fixed": "#002018",
+                    "secondary-fixed-dim": "#a4c9ff",
+                    "tertiary": "#835500",
+                    "secondary-fixed": "#d4e3ff",
+                    "on-primary-container": "#00362a",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-fixed-variant": "#004883",
+                    "tertiary-fixed-dim": "#ffb955",
+                    "inverse-primary": "#89d5bc",
+                    "error": "#ba1a1a",
+                    "surface-container": "#e5eeff",
+                    "on-tertiary-fixed-variant": "#633f00",
+                    "secondary": "#0060ac",
+                    "surface-container-highest": "#d3e4fe"
+                },
+                borderRadius: { DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", "2xl": "1rem", full: "9999px" },
+                spacing: {
+                    "stack-sm": "8px", "stack-md": "16px", "stack-lg": "32px",
+                    "container-padding": "24px", "unit": "8px", "gutter": "16px"
+                },
+                fontFamily: { body: ["Inter", "sans-serif"] },
+                fontSize: {
+                    "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                    "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                    "label-md": ["12px", { lineHeight: "16px", fontWeight: "500" }],
+                    "title-lg": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+                    "headline-md": ["24px", { lineHeight: "32px", fontWeight: "600" }],
+                    "headline-lg": ["32px", { lineHeight: "40px", fontWeight: "600" }],
+                    "display-lg": ["48px", { lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "700" }]
+                },
+                boxShadow: { soft: "0px 4px 20px rgba(0,0,0,0.04)" }
+            }
+        }
+    }
+</script>
+<style>
+    body { font-family: 'Inter', 'Microsoft YaHei', 'PingFang SC', sans-serif; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .material-symbols-outlined.filled { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .ambient-shadow { box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.04); }
+</style>
+{% block extra_head %}{% endblock %}
+</head>
+<body class="bg-background text-on-background font-body text-body-md min-h-screen flex">
+<!-- 侧边栏 -->
+<aside class="fixed left-0 top-0 bottom-0 z-40 w-72 h-screen overflow-y-auto flex flex-col bg-surface-container-lowest border-r border-outline-variant shadow-sm hidden md:flex">
+    <div class="p-6 border-b border-outline-variant/30 flex items-center gap-4">
+        <div class="w-10 h-10 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-lg">
+            <span class="material-symbols-outlined filled">dataset</span>
+        </div>
+        <div>
+            <h1 class="font-headline-md text-headline-md font-bold text-primary">OCR Trainer Admin</h1>
+            <p class="font-body-md text-body-md text-on-surface-variant">{{ site_settings.system_name }}</p>
+        </div>
+    </div>
+    <nav class="flex-1 py-4 flex flex-col gap-1">
+        {% with an=active_nav %}
+        <a class="flex items-center gap-3 {% if an == 'dashboard' %}bg-primary-container text-on-primary-container{% else %}text-on-surface-variant hover:bg-surface-container-high{% endif %} rounded-lg px-4 py-3 mx-2 transition-colors duration-200" href="{% url 'admin_dashboard' %}">
+            <span class="material-symbols-outlined {% if an == 'dashboard' %}filled{% endif %}">dashboard</span>
+            <span class="font-body-md text-body-md {% if an == 'dashboard' %}font-medium{% endif %}">数据总览</span>
+        </a>
+        <a class="flex items-center gap-3 {% if an == 'students' %}bg-primary-container text-on-primary-container{% else %}text-on-surface-variant hover:bg-surface-container-high{% endif %} rounded-lg px-4 py-3 mx-2 transition-colors duration-200" href="{% url 'admin_students' %}">
+            <span class="material-symbols-outlined {% if an == 'students' %}filled{% endif %}">group</span>
+            <span class="font-body-md text-body-md {% if an == 'students' %}font-medium{% endif %}">学生管理</span>
+        </a>
+        <a class="flex items-center gap-3 {% if an == 'classes' %}bg-primary-container text-on-primary-container{% else %}text-on-surface-variant hover:bg-surface-container-high{% endif %} rounded-lg px-4 py-3 mx-2 transition-colors duration-200" href="{% url 'admin_classes' %}">
+            <span class="material-symbols-outlined {% if an == 'classes' %}filled{% endif %}">school</span>
+            <span class="font-body-md text-body-md {% if an == 'classes' %}font-medium{% endif %}">班级管理</span>
+        </a>
+        <a class="flex items-center gap-3 {% if an == 'join_requests' %}bg-primary-container text-on-primary-container{% else %}text-on-surface-variant hover:bg-surface-container-high{% endif %} rounded-lg px-4 py-3 mx-2 transition-colors duration-200" href="{% url 'admin_join_requests' %}">
+            <span class="material-symbols-outlined {% if an == 'join_requests' %}filled{% endif %}">person_add</span>
+            <span class="font-body-md text-body-md {% if an == 'join_requests' %}font-medium{% endif %}">加入申请</span>
+        </a>
+        <a class="flex items-center gap-3 {% if an == 'tag_data' %}bg-primary-container text-on-primary-container{% else %}text-on-surface-variant hover:bg-surface-container-high{% endif %} rounded-lg px-4 py-3 mx-2 transition-colors duration-200" href="{% url 'admin_tag_data' %}">
+            <span class="material-symbols-outlined {% if an == 'tag_data' %}filled{% endif %}">label</span>
+            <span class="font-body-md text-body-md {% if an == 'tag_data' %}font-medium{% endif %}">标签数据管理</span>
+        </a>
+        <a class="flex items-center gap-3 {% if an == 'label_templates' %}bg-primary-container text-on-primary-container{% else %}text-on-surface-variant hover:bg-surface-container-high{% endif %} rounded-lg px-4 py-3 mx-2 transition-colors duration-200" href="{% url 'admin_label_templates' %}">
+            <span class="material-symbols-outlined {% if an == 'label_templates' %}filled{% endif %}">fact_check</span>
+            <span class="font-body-md text-body-md {% if an == 'label_templates' %}font-medium{% endif %}">标签模板管理</span>
+        </a>
+        <a class="flex items-center gap-3 {% if an == 'training_records' %}bg-primary-container text-on-primary-container{% else %}text-on-surface-variant hover:bg-surface-container-high{% endif %} rounded-lg px-4 py-3 mx-2 transition-colors duration-200" href="{% url 'admin_records' %}">
+            <span class="material-symbols-outlined {% if an == 'training_records' %}filled{% endif %}">history_edu</span>
+            <span class="font-body-md text-body-md {% if an == 'training_records' %}font-medium{% endif %}">实训记录</span>
+        </a>
+        <a class="flex items-center gap-3 {% if an == 'model_config' %}bg-primary-container text-on-primary-container{% else %}text-on-surface-variant hover:bg-surface-container-high{% endif %} rounded-lg px-4 py-3 mx-2 transition-colors duration-200" href="{% url 'admin_model_config' %}">
+            <span class="material-symbols-outlined {% if an == 'model_config' %}filled{% endif %}">settings_input_component</span>
+            <span class="font-body-md text-body-md {% if an == 'model_config' %}font-medium{% endif %}">模型配置</span>
+        </a>
+        <a class="flex items-center gap-3 {% if an == 'model_evaluate' %}bg-primary-container text-on-primary-container{% else %}text-on-surface-variant hover:bg-surface-container-high{% endif %} rounded-lg px-4 py-3 mx-2 transition-colors duration-200" href="{% url 'admin_model_evaluate' %}">
+            <span class="material-symbols-outlined {% if an == 'model_evaluate' %}filled{% endif %}">monitoring</span>
+            <span class="font-body-md text-body-md {% if an == 'model_evaluate' %}font-medium{% endif %}">模型评估</span>
+        </a>
+        <div class="mt-auto mb-2 border-t border-outline-variant/30 pt-4 px-4 pb-2">
+            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">账号</span>
+        </div>
+        <a class="flex items-center gap-3 {% if an == 'profile' %}bg-primary-container text-on-primary-container{% else %}text-on-surface-variant hover:bg-surface-container-high{% endif %} rounded-lg px-4 py-3 mx-2 transition-colors duration-200" href="{% url 'admin_profile' %}">
+            <span class="material-symbols-outlined {% if an == 'profile' %}filled{% endif %}">account_circle</span>
+            <span class="font-body-md text-body-md {% if an == 'profile' %}font-medium{% endif %}">个人中心</span>
+        </a>
+        <a class="flex items-center gap-3 {% if an == 'logs' %}bg-primary-container text-on-primary-container{% else %}text-on-surface-variant hover:bg-surface-container-high{% endif %} rounded-lg px-4 py-3 mx-2 transition-colors duration-200" href="{% url 'admin_logs' %}">
+            <span class="material-symbols-outlined {% if an == 'logs' %}filled{% endif %}">receipt_long</span>
+            <span class="font-body-md text-body-md {% if an == 'logs' %}font-medium{% endif %}">操作日志</span>
+        </a>
+        <a class="flex items-center gap-3 {% if an == 'settings' %}bg-primary-container text-on-primary-container{% else %}text-on-surface-variant hover:bg-surface-container-high{% endif %} rounded-lg px-4 py-3 mx-2 transition-colors duration-200" href="{% url 'admin_settings' %}">
+            <span class="material-symbols-outlined {% if an == 'settings' %}filled{% endif %}">settings</span>
+            <span class="font-body-md text-body-md {% if an == 'settings' %}font-medium{% endif %}">系统设置</span>
+        </a>
+        {% endwith %}
+    </nav>
+</aside>
+
+<!-- 主内容 -->
+<div class="flex-1 flex flex-col min-h-screen md:ml-72">
+    <header class="flex justify-between items-center h-16 w-full pl-6 md:pl-8 pr-6 bg-surface-container-lowest border-b border-outline-variant z-30 sticky top-0">
+        <div class="flex items-center gap-4">
+            <button class="md:hidden text-on-surface p-2 hover:bg-surface-container rounded-full transition-colors">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            <h2 class="font-title-lg text-title-lg text-on-surface">{% block header_title %}Admin Dashboard{% endblock %}</h2>
+        </div>
+        <div class="flex items-center gap-6">
+            <div class="relative hidden sm:block">
+                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+                <input class="pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant rounded-full text-body-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all w-64" placeholder="搜索..." type="text">
+            </div>
+            <div class="flex items-center gap-2">
+                <button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors" title="通知">
+                    <span class="material-symbols-outlined">notifications</span>
+                </button>
+                <button class="p-2 text-on-surface-variant hover:bg-surface-container-high rounded-full transition-colors" title="帮助">
+                    <span class="material-symbols-outlined">help_outline</span>
+                </button>
+            </div>
+            <div class="h-6 w-px bg-outline-variant hidden sm:block"></div>
+            <div class="flex items-center gap-4">
+                <div class="hidden sm:flex flex-col items-end leading-tight">
+                    <span class="font-body-md text-body-md text-on-surface">{{ user.username }}</span>
+                    <span class="text-xs text-on-surface-variant">管理员 Admin</span>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold">
+                    {{ user.username|slice:":1"|upper }}
+                </div>
+                <a href="{% url 'logout' %}" class="text-error font-body-md text-body-md font-medium hover:text-error/80 transition-colors">退出</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 p-container-padding lg:p-8 max-w-[1440px] mx-auto w-full">
+        {% if messages %}
+            {% for message in messages %}
+            <div class="mb-4 px-4 py-3 rounded-xl border text-body-md {% if message.tags == 'error' %}bg-error-container text-on-error-container border-error/20{% elif message.tags == 'success' %}bg-primary-fixed text-on-primary-fixed-variant border-primary/20{% else %}bg-surface-container text-on-surface border-outline-variant/40{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+</div>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

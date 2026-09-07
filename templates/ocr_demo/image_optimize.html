@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}图像优化 - 食品外包装文字识别检测系统{% endblock %}
+
+{% block extra_head %}
+<style>
+    .method-pill { border: 1px solid var(--outline-variant); border-radius: 999px; padding: 6px 14px; color: var(--on-surface-variant); background: #fff; font-size: .88rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: all .15s; cursor: pointer; }
+    .method-pill:hover { background: var(--surface-container); }
+    .method-pill input { display: none; }
+    .method-pill.active { border-color: var(--primary); color: var(--primary); background: rgba(0,105,78,0.08); }
+    .cmp-img { width: 100%; border-radius: 10px; border: 1px solid var(--outline-variant); object-fit: contain; background: #fafafa; max-height: 340px; }
+    .cmp-label { font-size: .78rem; font-weight: 700; color: var(--on-surface-variant); letter-spacing: .02em; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <h1><span class="material-symbols-outlined align-middle" style="font-size:1.6rem;">auto_fix_high</span> 图像优化</h1>
+    <div class="sub">对采集到的外包装图片做 OpenCV 处理：一类改善画质以提升识别效果，一类模拟拍摄畸变与遮挡用于扩充训练样本</div>
+</div>
+
+<div class="row g-3">
+    <!-- 左：上传 + 方法选择 -->
+    <div class="col-lg-5">
+        <div class="card mb-3">
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <label class="form-label fw-bold">选择要优化的图片</label>
+                    <input type="file" name="image" class="form-control mb-3" accept="image/*" required>
+
+                    {% for group, methods in optimize_groups %}
+                    <label class="form-label fw-bold">{{ group }}</label>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        {% for value, label in methods %}
+                        <label class="method-pill {% if method == value %}active{% endif %}">
+                            <input type="radio" name="method" value="{{ value }}" {% if method == value %}checked{% endif %}>
+                            {{ label }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="run_ocr" id="runOcr" {% if orig_text != None %}checked{% endif %}>
+                        <label class="form-check-label" for="runOcr">同时运行 OCR，对比优化前后的识别文字</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <span class="material-symbols-outlined" style="font-size:18px;">auto_fix_high</span> 开始优化
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body text-secondary small">
+                <span class="material-symbols-outlined align-middle text-primary" style="font-size:18px;">lightbulb</span>
+                <b>图像优化</b>：拍摄模糊、反光、对比度低的包装图，可先用「对比度增强 (CLAHE)」或「锐化」改善画质，再回「检测演示」识别，能提升生产日期、配料等小字的识别率。<br>
+                <b>图像增强</b>：旋转、错切、擦除会<b>降低</b>当前这张图的识别效果——它们的用途是模拟歪斜拍摄与包装褶皱遮挡，扩充训练样本、检验模型鲁棒性。勾选「同时运行 OCR」即可看出识别结果的变化。
+            </div>
+        </div>
+    </div>
+
+    <!-- 右：结果对比 -->
+    <div class="col-lg-7">
+        {% if original_url and optimized_url %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="material-symbols-outlined text-primary">compare</span>
+                    <span class="fw-bold">优化前后对比</span>
+                    <span class="badge ms-auto" style="background:var(--surface-container);color:var(--primary);">{{ method_label }}</span>
+                </div>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="cmp-label mb-2">优化前（原图）</div>
+                        <img src="{{ original_url }}" class="cmp-img" alt="原图">
+                    </div>
+                    <div class="col-6">
+                        <div class="cmp-label mb-2 text-primary">优化后（{{ method_label }}）</div>
+                        <img src="{{ optimized_url }}" class="cmp-img" alt="优化后">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="material-symbols-outlined text-primary">document_scanner</span>
+                    <span class="fw-bold">用优化后图片进行 OCR 检测</span>
+                </div>
+                <form method="post" action="{% url 'image_optimize_detect' %}" class="d-flex flex-wrap gap-2 align-items-center">
+                    {% csrf_token %}
+                    <input type="hidden" name="image_path" value="{{ optimized_path }}">
+                    <select name="packaging_category" class="form-select form-select-sm" style="width:auto;">
+                        <option value="">通用</option>
+                        <option value="Box">盒装</option>
+                        <option value="Bottle">瓶装</option>
+                        <option value="Can">罐装</option>
+                        <option value="Bag">袋装</option>
+                        <option value="Cup">杯装</option>
+                        <option value="Label">标签</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="material-symbols-outlined" style="font-size:18px;">arrow_forward</span> 前往识别
+                    </button>
+                </form>
+                <div class="text-muted small mt-2">优化后的图片已自动保存，点击即可直接用其进行合规识别，无需重新上传。</div>
+            </div>
+        </div>
+
+        {% if orig_text != None %}
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="material-symbols-outlined text-primary">text_fields</span>
+                    <span class="fw-bold">OCR 识别对比</span>
+                </div>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="cmp-label mb-2">优化前识别文字</div>
+                        <pre class="small bg-light p-3 rounded" style="white-space:pre-wrap;min-height:120px;max-height:300px;overflow:auto;">{{ orig_text|default:"（未识别到文字）" }}</pre>
+                    </div>
+                    <div class="col-6">
+                        <div class="cmp-label mb-2 text-primary">优化后识别文字</div>
+                        <pre class="small p-3 rounded" style="white-space:pre-wrap;min-height:120px;max-height:300px;overflow:auto;background:rgba(0,105,78,0.06);">{{ opt_text|default:"（未识别到文字）" }}</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <span class="material-symbols-outlined d-block" style="font-size:3rem;color:var(--primary-container);">auto_fix_high</span>
+                <p class="text-muted mt-2 mb-0">选择一张图片并挑选优化方法，即可在此查看前后对比效果。</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

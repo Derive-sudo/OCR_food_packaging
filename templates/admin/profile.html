@@ -1,0 +1,77 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}个人中心 - 管理端{% endblock %}
+{% block header_title %}个人中心{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h2 class="text-headline-lg text-on-surface">个人中心</h2>
+    <p class="text-body-md text-on-surface-variant mt-1">管理您的管理员资料与安全设置。</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- 左侧 -->
+    <div class="lg:col-span-4 flex flex-col gap-6">
+        <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-soft border border-outline-variant/30 flex flex-col items-center text-center">
+            <div class="w-24 h-24 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-3xl mb-4">{{ profile_user.username|slice:":1"|upper }}</div>
+            <h3 class="text-title-lg text-on-surface mb-1">{{ profile_user.username }}</h3>
+            <p class="text-body-md text-on-surface-variant mb-4">超级管理员</p>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-container/20 text-surface-tint text-label-md">
+                <span class="w-2 h-2 rounded-full bg-primary"></span> 已激活
+            </div>
+        </div>
+        <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-soft border border-outline-variant/30">
+            <h4 class="text-title-lg text-on-surface mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary">bar_chart</span> 平台概览</h4>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-surface-container-low rounded-xl p-4">
+                    <p class="text-label-md text-on-surface-variant mb-1 uppercase tracking-wide">实训生</p>
+                    <p class="text-headline-md text-primary font-bold">{{ student_count }}</p>
+                </div>
+                <div class="bg-surface-container-low rounded-xl p-4">
+                    <p class="text-label-md text-on-surface-variant mb-1 uppercase tracking-wide">检测总数</p>
+                    <p class="text-headline-md text-secondary font-bold">{{ total_records }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 右侧 -->
+    <div class="lg:col-span-8 flex flex-col gap-6">
+        <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-soft border border-outline-variant/30">
+            <h4 class="text-title-lg text-on-surface mb-6 flex items-center gap-2"><span class="material-symbols-outlined text-primary">manage_accounts</span> 账号信息</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface-variant">用户名</label>
+                    <input class="w-full px-4 py-2.5 rounded-lg bg-[#F1F5F9] border-transparent text-on-surface-variant text-body-md cursor-not-allowed" disabled type="text" value="{{ profile_user.username }}">
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface-variant">邮箱</label>
+                    <input class="w-full px-4 py-2.5 rounded-lg bg-[#F1F5F9] border-transparent text-on-surface-variant text-body-md cursor-not-allowed" disabled type="text" value="{{ profile_user.email|default:'-' }}">
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface-variant">注册时间</label>
+                    <input class="w-full px-4 py-2.5 rounded-lg bg-[#F1F5F9] border-transparent text-on-surface-variant text-body-md cursor-not-allowed" disabled type="text" value="{{ profile_user.date_joined|date:'Y-m-d H:i' }}">
+                </div>
+            </div>
+        </div>
+        <div class="bg-surface-container-lowest rounded-2xl p-6 shadow-soft border border-outline-variant/30">
+            <h4 class="text-title-lg text-on-surface mb-6 flex items-center gap-2"><span class="material-symbols-outlined text-primary">lock_reset</span> 修改密码</h4>
+            <form method="post" class="flex flex-col gap-4">
+                {% csrf_token %}
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface">当前密码</label>
+                    <input class="w-full px-4 py-2.5 rounded-lg bg-[#F1F5F9] border border-transparent focus:bg-white focus:border-secondary focus:ring-1 focus:ring-secondary text-on-surface text-body-md transition-colors" type="password" name="old_password" required>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface">新密码</label>
+                    <input class="w-full px-4 py-2.5 rounded-lg bg-[#F1F5F9] border border-transparent focus:bg-white focus:border-secondary focus:ring-1 focus:ring-secondary text-on-surface text-body-md transition-colors" type="password" name="new_password" required>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface">确认新密码</label>
+                    <input class="w-full px-4 py-2.5 rounded-lg bg-[#F1F5F9] border border-transparent focus:bg-white focus:border-secondary focus:ring-1 focus:ring-secondary text-on-surface text-body-md transition-colors" type="password" name="confirm_password" required>
+                </div>
+                <button class="mt-2 py-2.5 rounded-2xl bg-primary text-on-primary text-label-md font-semibold hover:bg-surface-tint transition-colors" type="submit">更新密码</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

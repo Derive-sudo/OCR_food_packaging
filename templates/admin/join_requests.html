@@ -1,0 +1,67 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}加入申请 - 管理端{% endblock %}
+{% block header_title %}加入申请{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h2 class="text-headline-lg text-on-surface">加入申请</h2>
+    <p class="text-body-md text-on-surface-variant mt-1">审核学生加入班级的申请。{% if pending_count %}<span class="text-error font-medium">（{{ pending_count }} 条待审核）</span>{% endif %}</p>
+</div>
+
+<!-- 标签页 -->
+<div class="flex gap-4 border-b border-outline-variant mb-6 pb-1">
+    <a href="{% url 'admin_join_requests' %}" class="px-4 py-2 text-title-lg {% if not status %}text-primary border-b-2 border-primary font-bold{% else %}text-on-surface-variant hover:bg-surface-container-low rounded-t-lg{% endif %} transition-colors">全部</a>
+    <a href="?status=pending" class="px-4 py-2 text-title-lg {% if status == 'pending' %}text-primary border-b-2 border-primary font-bold{% else %}text-on-surface-variant hover:bg-surface-container-low rounded-t-lg{% endif %} transition-colors">待审核</a>
+    <a href="?status=approved" class="px-4 py-2 text-title-lg {% if status == 'approved' %}text-primary border-b-2 border-primary font-bold{% else %}text-on-surface-variant hover:bg-surface-container-low rounded-t-lg{% endif %} transition-colors">已通过</a>
+    <a href="?status=rejected" class="px-4 py-2 text-title-lg {% if status == 'rejected' %}text-primary border-b-2 border-primary font-bold{% else %}text-on-surface-variant hover:bg-surface-container-low rounded-t-lg{% endif %} transition-colors">已拒绝</a>
+</div>
+
+<!-- 申请列表 -->
+<div class="flex flex-col gap-3">
+    {% for req in requests %}
+    <div class="bg-surface-container-lowest rounded-xl p-5 shadow-soft border border-outline-variant/30 flex flex-col md:flex-row md:items-center gap-4">
+        <div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold">{{ req.student.username|slice:":1"|upper }}</div>
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-[14px] font-semibold text-on-surface">{{ req.student.username }}</span>
+                <span class="text-on-surface-variant">申请加入</span>
+                <span class="text-[14px] font-semibold text-primary">{{ req.target_class.name }}</span>
+            </div>
+            <p class="text-body-md text-on-surface-variant truncate">{{ req.message|default:"无申请说明" }}</p>
+            <p class="text-label-md text-on-surface-variant mt-1">{{ req.created_at|date:"Y-m-d H:i" }} 提交</p>
+        </div>
+        <div class="flex items-center gap-2 md:flex-col md:items-end">
+            {% if req.status == 'pending' %}
+            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-tertiary-fixed text-on-tertiary-fixed">待审核</span>
+            <div class="flex gap-2">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="request_id" value="{{ req.id }}">
+                    <input type="hidden" name="decision" value="approve">
+                    <button type="submit" class="px-3 py-1.5 rounded-lg bg-primary text-on-primary text-label-md hover:bg-surface-tint transition-colors flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">check</span> 通过</button>
+                </form>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="request_id" value="{{ req.id }}">
+                    <input type="hidden" name="decision" value="reject">
+                    <button type="submit" class="px-3 py-1.5 rounded-lg bg-error-container text-on-error-container text-label-md hover:opacity-90 transition-colors flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">close</span> 拒绝</button>
+                </form>
+            </div>
+            {% elif req.status == 'approved' %}
+            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-primary-fixed text-on-primary-fixed-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">check_circle</span> 已通过</span>
+            {% else %}
+            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-error-container text-on-error-container flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">cancel</span> 已拒绝</span>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-16 flex flex-col items-center text-center">
+        <div class="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant mb-4"><span class="material-symbols-outlined text-[40px]">person_add</span></div>
+        <h3 class="text-title-lg text-on-surface mb-1">暂无加入申请</h3>
+        <p class="text-body-md text-on-surface-variant max-w-sm">当前没有{% if status == 'pending' %}待审核的{% elif status == 'approved' %}已通过的{% elif status == 'rejected' %}已拒绝的{% endif %}申请。</p>
+    </div>
+    {% endfor %}
+</div>
+{% include "admin/_pagination.html" %}
+{% endblock %}

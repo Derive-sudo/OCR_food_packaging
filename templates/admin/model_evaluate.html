@@ -1,0 +1,114 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}模型评估 - 管理端{% endblock %}
+{% block header_title %}模型评估{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h2 class="text-headline-lg text-on-surface">模型评估</h2>
+    <p class="text-body-md text-on-surface-variant mt-1">选择评测数据与识别模型，后台计算字符准确率、整行准确率等指标，用于对比官方模型与微调模型的效果。</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+    <!-- ==================== 开始评估 ==================== -->
+    <div class="lg:col-span-5 flex flex-col gap-6">
+        <div class="bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant/30">
+            <h3 class="text-title-lg text-on-surface border-b border-outline-variant/30 pb-2 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">play_circle</span> 开始评估
+            </h3>
+            <form method="post" class="flex flex-col gap-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="start_eval">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface-variant">评测数据文件（rec_gt*.txt）</label>
+                    <select name="data_path" class="bg-[#F1F5F9] border-transparent focus:border-secondary focus:bg-white focus:ring-0 rounded-lg p-2 text-body-md text-on-surface transition-colors" required>
+                        <option value="" disabled selected>请选择评测数据</option>
+                        {% for path, label in datasets %}
+                        <option value="{{ path }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if not datasets %}
+                    <p class="text-label-md text-on-surface-variant">未找到评测数据，请先在项目根目录下准备 rec_gt*.txt。</p>
+                    {% endif %}
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface-variant">推理模型目录（留空 = 官方 PP-OCRv4）</label>
+                    <input class="bg-[#F1F5F9] border-transparent focus:border-secondary focus:bg-white focus:ring-0 rounded-lg p-2 text-body-md text-on-surface transition-colors" type="text" name="model_dir" placeholder="如：output/rec/inference（需含 inference.pdmodel）">
+                    <p class="text-label-md text-on-surface-variant">留空则评估官方 PP-OCRv4 识别模型。</p>
+                </div>
+                <button class="bg-primary text-on-primary rounded-2xl px-5 py-2.5 text-label-md font-bold hover:bg-surface-tint transition-colors flex items-center justify-center gap-2 shadow-sm" type="submit" {% if not datasets %}disabled{% endif %}>
+                    <span class="material-symbols-outlined text-[18px]">monitoring</span> 开始评估
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== 历史记录 ==================== -->
+    <div class="lg:col-span-7">
+        <div class="bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant/30">
+            <h3 class="text-title-lg text-on-surface border-b border-outline-variant/30 pb-2 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-secondary">history</span> 评估记录
+            </h3>
+            {% if runs %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-body-md">
+                    <thead>
+                        <tr class="text-left text-label-md text-on-surface-variant border-b border-outline-variant/30">
+                            <th class="py-2 pr-4">ID</th>
+                            <th class="py-2 pr-4">评测数据</th>
+                            <th class="py-2 pr-4">模型</th>
+                            <th class="py-2 pr-4">字符准确率</th>
+                            <th class="py-2 pr-4">整行准确率</th>
+                            <th class="py-2 pr-4">状态</th>
+                            <th class="py-2 text-right">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for run in runs %}
+                        <tr class="border-b border-outline-variant/20 hover:bg-surface-container/40 transition-colors">
+                            <td class="py-3 pr-4 text-on-surface-variant">#{{ run.id }}</td>
+                            <td class="py-3 pr-4 text-on-surface font-medium max-w-[180px] truncate">{{ run.data_path }}</td>
+                            <td class="py-3 pr-4 text-on-surface-variant max-w-[160px] truncate">{{ run.model_label }}</td>
+                            <td class="py-3 pr-4 text-on-surface">
+                                {% if run.char_accuracy is not None %}{{ run.char_accuracy|floatformat:2 }}%{% else %}—{% endif %}
+                            </td>
+                            <td class="py-3 pr-4 text-on-surface">
+                                {% if run.line_accuracy is not None %}{{ run.line_accuracy|floatformat:2 }}%{% else %}—{% endif %}
+                            </td>
+                            <td class="py-3 pr-4">
+                                {% if run.status == 'running' %}
+                                <span class="bg-secondary-container text-on-secondary-container text-xs font-bold rounded-full px-2 py-0.5">评估中</span>
+                                {% elif run.status == 'completed' %}
+                                <span class="bg-primary-fixed text-on-primary-fixed-variant text-xs font-bold rounded-full px-2 py-0.5">已完成</span>
+                                {% else %}
+                                <span class="bg-error-container text-on-error-container text-xs font-bold rounded-full px-2 py-0.5">失败</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 text-right whitespace-nowrap">
+                                <a href="{% url 'admin_model_evaluate_detail' run.id %}" class="inline-flex items-center gap-1 text-secondary hover:underline mr-3">
+                                    <span class="material-symbols-outlined text-[18px]">visibility</span>详情
+                                </a>
+                                <form method="post" class="inline" onsubmit="return confirm('确定删除该评估记录？');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_run">
+                                    <input type="hidden" name="run_id" value="{{ run.id }}">
+                                    <button type="submit" class="inline-flex items-center gap-1 text-error hover:underline">
+                                        <span class="material-symbols-outlined text-[18px]">delete</span>删除
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="flex flex-col items-center text-center py-12 text-on-surface-variant">
+                <span class="material-symbols-outlined text-[40px] mb-2">monitoring</span>
+                <p class="text-body-md">暂无评估记录，请选择评测数据并开始评估。</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}管理控制台 - 食品外包装文字识别检测系统{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <h1><span class="material-symbols-outlined align-middle" style="font-size:1.6rem;">shield</span> 管理控制台</h1>
+    <div class="sub">系统运行概览与数据统计</div>
+</div>
+
+<!-- 核心统计卡片 -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg">
+        <div class="card stat-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon" style="background:var(--primary);"><i class="bi bi-people"></i></div>
+                <div>
+                    <div class="stat-label">用户总数</div>
+                    <div class="stat-value">{{ total_users }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg">
+        <div class="card stat-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon" style="background:var(--secondary);"><i class="bi bi-mortarboard"></i></div>
+                <div>
+                    <div class="stat-label">实训生数</div>
+                    <div class="stat-value">{{ student_count }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg">
+        <div class="card stat-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon" style="background:var(--tertiary);"><i class="bi bi-files"></i></div>
+                <div>
+                    <div class="stat-label">检测总数</div>
+                    <div class="stat-value">{{ total_records }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg">
+        <div class="card stat-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon" style="background:var(--secondary-container);"><i class="bi bi-lightning"></i></div>
+                <div>
+                    <div class="stat-label">今日检测</div>
+                    <div class="stat-value">{{ today_count }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg">
+        <div class="card stat-card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+                <div class="stat-icon" style="background:var(--primary);"><i class="bi bi-check2-circle"></i></div>
+                <div>
+                    <div class="stat-label">合规通过率</div>
+                    <div class="stat-value">{{ compliance_rate|floatformat:1 }}%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快捷管理入口 -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <a href="{% url 'admin_records' %}" class="text-decoration-none">
+            <div class="card h-100 border-0 shadow-sm" style="border-left:4px solid var(--primary);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">实训记录管理</span>
+                        <i class="bi bi-arrow-right text-muted"></i>
+                    </div>
+                    <div class="text-muted small mt-1">筛选、查看并导出全部检测记录</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{% url 'samples_manage' %}" class="text-decoration-none">
+            <div class="card h-100 border-0 shadow-sm" style="border-left:4px solid var(--tertiary);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">样本管理</span>
+                        <i class="bi bi-arrow-right text-muted"></i>
+                    </div>
+                    <div class="text-muted small mt-1">管理识别样本、标签数据留痕</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{% url 'finetune_model' %}" class="text-decoration-none">
+            <div class="card h-100 border-0 shadow-sm" style="border-left:4px solid var(--secondary);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">模型微调</span>
+                        <i class="bi bi-arrow-right text-muted"></i>
+                    </div>
+                    <div class="text-muted small mt-1">数据集管理、参数调优与训练任务</div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{% url 'ocr_home' %}" class="text-decoration-none">
+            <div class="card h-100 border-0 shadow-sm" style="border-left:4px solid var(--secondary-container);">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">检测演示</span>
+                        <i class="bi bi-arrow-right text-muted"></i>
+                    </div>
+                    <div class="text-muted small mt-1">体验 OCR 识别与合规检测流程</div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- 最近检测记录 -->
+<div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-bold"><span class="material-symbols-outlined align-middle text-primary">list_alt</span> 最近检测记录</span>
+        <a href="{% url 'admin_records' %}" class="btn btn-sm btn-outline-primary">全部记录</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>学生</th>
+                    <th>检测时间</th>
+                    <th>识别结果预览</th>
+                    <th>合规判定</th>
+                    <th>置信度</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in recent_records %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ record.user.username }}</td>
+                    <td class="text-nowrap">{{ record.created_at|date:"Y-m-d H:i" }}</td>
+                    <td><span class="d-inline-block text-truncate" style="max-width:300px;">{{ record.result_text|truncatechars:40 }}</span></td>
+                    <td>
+                        {% if record.is_compliant %}
+                            <span class="badge" style="background:var(--primary-container-soft);color:var(--primary);">合规</span>
+                        {% else %}
+                            <span class="badge" style="background:var(--error-container);color:#93000a;">不合规</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if record.confidence %}{{ record.confidence|floatformat:2 }}{% else %}<span class="text-muted">-</span>{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-4">暂无检测记录</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}新建数据集{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <h1 class="mb-1">📁 新建训练数据集</h1>
+    <p class="text-muted mb-0">填写数据集基本信息。</p>
+</div>
+
+<div class="card shadow-sm" style="max-width: 640px;">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">数据集名称</label>
+                <input type="text" name="name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">描述</label>
+                <textarea name="description" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">类型</label>
+                <select name="dataset_type" class="form-select">
+                    <option value="food_label" selected>食品标签</option>
+                    <option value="general">通用文字</option>
+                    <option value="custom">自定义</option>
+                </select>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">创建</button>
+                <a href="{% url 'finetune_datasets' %}" class="btn btn-outline-secondary">返回</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

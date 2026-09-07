@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}检测演示 - 食品外包装文字识别检测系统{% endblock %}
+
+{% block extra_head %}
+<style>
+    .cat-pill { border: 1px solid var(--outline-variant); border-radius: 999px; padding: 6px 14px; color: var(--on-surface-variant); background: #fff; font-size: .88rem; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: all .15s; cursor: pointer; }
+    .cat-pill:hover { background: var(--surface-container); }
+    .cat-pill.active { border-color: var(--primary); color: var(--primary); background: rgba(0,105,78,0.08); }
+    .drop-zone { border: 2px dashed var(--outline-variant); border-radius: 12px; transition: all .2s; background: #fff; }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: var(--primary); background: #f5fff8; }
+    .seg-toggle { display: inline-flex; background: var(--surface-container); border-radius: 10px; padding: 4px; }
+    .seg-toggle button { padding: 7px 16px; border: none; background: transparent; border-radius: 8px; font-size: .85rem; font-weight: 600; color: var(--on-surface-variant); transition: all .15s; }
+    .seg-toggle button.active { background: #fff; color: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .fld-label { font-family: 'JetBrains Mono', monospace; font-size: .72rem; color: var(--on-surface-variant); margin-bottom: 6px; }
+    .fld-input { background: #fff; border: 1px solid var(--outline-variant); border-radius: 8px; padding: 9px 12px; font-size: .9rem; color: var(--on-surface); }
+    .conf-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 6px; font-size: .75rem; font-weight: 700; }
+    .conf-badge.high { background: rgba(0,105,78,0.12); color: var(--primary); }
+    .conf-badge.mid { background: #fff3cd; color: #856404; }
+    .conf-badge.low { background: var(--error-container); color: #93000a; }
+    .compliance-card { border: 1px solid var(--outline-variant); border-radius: 10px; padding: 14px; text-align: center; cursor: pointer; transition: all .15s; }
+    .compliance-card.active-pass { border-color: var(--primary); background: rgba(0,105,78,0.06); }
+    .compliance-card.active-fail { border-color: var(--error); background: rgba(186,26,26,0.05); }
+    .compliance-card .ms { display: block; margin-bottom: 4px; font-size: 1.4rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <h1><span class="material-symbols-outlined align-middle" style="font-size:1.6rem;">document_scanner</span> 检测演示</h1>
+    <div class="sub">上传食品外包装图片或拍照，系统自动识别文字并进行标签合规检测</div>
+</div>
+
+<div class="row g-3">
+    <!-- ==================== 左：分类 + 上传 ==================== -->
+    <div class="col-lg-7">
+        <!-- 包装分类 -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="material-symbols-outlined text-primary">category</span>
+                    <span class="fw-bold">选择包装分类</span>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="cat-pill active" data-cat="Box"><span class="material-symbols-outlined" style="font-size:16px;">inventory_2</span> 盒装</button>
+                    <button type="button" class="cat-pill" data-cat="Bottle"><span class="material-symbols-outlined" style="font-size:16px;">water_bottle</span> 瓶装</button>
+                    <button type="button" class="cat-pill" data-cat="Can"><span class="material-symbols-outlined" style="font-size:16px;">liquor</span> 罐装</button>
+                    <button type="button" class="cat-pill" data-cat="Bag"><span class="material-symbols-outlined" style="font-size:16px;">shopping_bag</span> 袋装</button>
+                    <button type="button" class="cat-pill" data-cat="Cup"><span class="material-symbols-outlined" style="font-size:16px;">local_cafe</span> 杯装</button>
+                    <button type="button" class="cat-pill" data-cat="Label"><span class="material-symbols-outlined" style="font-size:16px;">label</span> 标签</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 上传区域 -->
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">image</span>
+                        <span class="fw-bold">图片采集</span>
+                    </div>
+                    <div class="seg-toggle">
+                        <button type="button" class="active" id="uploadMode" onclick="setMode('upload')">本地上传</button>
+                        <button type="button" id="cameraMode" onclick="setMode('camera')">拍照</button>
+                    </div>
+                </div>
+
+                <form method="post" enctype="multipart/form-data" id="ocrForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="packagingCategory" name="packaging_category" value="Box">
+                    <input type="file" class="d-none" id="image" name="image" accept="image/*" required>
+
+                    <!-- 拖拽上传区 -->
+                    <div class="drop-zone text-center p-4" id="dropZone" style="min-height:260px;">
+                        <img id="preview" src="" alt="预览" style="display:none; max-height:240px; object-fit:contain; width:100%; border-radius:8px;" class="mb-3">
+                        <div id="dropHint">
+                            <span class="material-symbols-outlined d-block mb-2" style="font-size:2.6rem;color:var(--primary);">cloud_upload</span>
+                            <div class="fw-bold">拖拽图片到此处</div>
+                            <div class="text-secondary small mb-3">支持 JPG / PNG / WebP，最大 10MB</div>
+                            <button type="button" class="btn btn-primary" onclick="document.getElementById('image').click()">选择文件</button>
+                        </div>
+                    </div>
+
+                    <!-- 拍照区域 -->
+                    <div id="cameraWrap" style="display:none;">
+                        <video id="cameraVideo" autoplay playsinline class="w-100 rounded" style="background:#000; max-height:280px;"></video>
+                        <canvas id="cameraCanvas" class="d-none"></canvas>
+                        <div class="d-flex gap-2 mt-2">
+                            <button type="button" class="btn btn-primary flex-fill" onclick="capturePhoto()"><span class="material-symbols-outlined" style="font-size:18px;">photo_camera</span> 拍照</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="stopCamera()">取消</button>
+                        </div>
+                    </div>
+
+                    <!-- 识别前图像优化（先优化再识别） -->
+                    <div class="mt-3 p-3 rounded" style="background:var(--surface-container);">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="optimizeToggle" name="optimize" value="on" onchange="document.getElementById('optimizeMethodWrap').classList.toggle('d-none', !this.checked);">
+                            <label class="form-check-label fw-bold" for="optimizeToggle">识别前先图像优化</label>
+                            <div class="text-muted small">对模糊/反光/低对比图片先做 OpenCV 预处理，再送入 OCR</div>
+                        </div>
+                        <div id="optimizeMethodWrap" class="d-none mt-2">
+                            <label class="form-label small text-secondary mb-1">处理方法</label>
+                            <select name="optimize_method" class="form-select form-select-sm">
+                                {% for group, methods in optimize_groups %}
+                                <optgroup label="{{ group }}">
+                                    {% for value, label in methods %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mt-3 py-2">
+                        <span class="material-symbols-outlined" style="font-size:18px;">document_scanner</span> 开始 OCR 检测
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body text-secondary small">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="material-symbols-outlined text-primary" style="font-size:18px;">lightbulb</span>
+                    <span class="fw-bold text-body">标签要求信息</span>
+                    <span class="badge ms-auto" style="background:var(--surface-container);color:var(--primary);">GB 7718 标准</span>
+                </div>
+                系统基于 <b>PaddleOCR</b> 自动提取<b>产品名称、产品类型、配料、净含量、生产日期、保质期、产品标准代号、生产许可证编号、生产厂家、地址、产地</b>等 11 项关键信息，并对照 <b>GB 7718 食品安全标签要求</b>进行合规检测，结果与记录全程留存。
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 右：识别结果 ==================== -->
+    <div class="col-lg-5">
+        {% if result %}
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2 border-bottom pb-3 mb-4">
+                    <span class="material-symbols-outlined text-primary">analytics</span>
+                    <span class="fw-bold">检测结果</span>
+                    {% if optimized %}
+                    <span class="badge" style="background:var(--tertiary-container);color:var(--tertiary);"><span class="material-symbols-outlined" style="font-size:14px;">auto_fix_high</span> 已优化·{{ optimize_method_label }}</span>
+                    {% endif %}
+                    <span class="badge ms-auto" style="background:var(--surface-container);color:var(--primary);">{{ mode_label }}</span>
+                </div>
+
+                {% if mode == 'db_det' %}
+                <!-- DB 文本检测结果 -->
+                <div class="mb-3">
+                    <div class="fld-label">DB 文本检测</div>
+                    <div class="fld-input">检测到 <b>{{ detected_count }}</b> 个文字区域</div>
+                </div>
+                {% if annotated_image_url %}
+                <div class="mb-3">
+                    <div class="fld-label">检测框可视化</div>
+                    <img src="{{ annotated_image_url }}" alt="检测框" class="w-100 rounded" style="border:1px solid var(--outline-variant);">
+                </div>
+                {% endif %}
+                {% if boxes %}
+                <div class="mb-2">
+                    <div class="fld-label">文字区域坐标（4 角点）</div>
+                    <div style="max-height:170px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:.75rem;">
+                        {% for box in boxes %}
+                        <div class="text-muted mb-1">#{{ forloop.counter }} {{ box }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% elif mode == 'crnn_rec' %}
+                <!-- CRNN 文字识别结果 -->
+                <div class="mb-3">
+                    <div class="fld-label">CRNN 文字识别</div>
+                    <div class="fld-input" style="min-height:60px;">{{ rec_text }}</div>
+                </div>
+                {% if rec_confidence %}
+                <div class="mb-3">
+                    <div class="fld-label">置信度</div>
+                    <div class="fld-input">{{ rec_confidence|floatformat:2 }}</div>
+                </div>
+                {% endif %}
+
+                {% else %}
+                <!-- 完整识别结果（默认 / 微调 / 自定义） -->
+                {% if record.confidence %}
+                <div class="mb-3">
+                    <div class="fld-label">平均置信度</div>
+                    {% if record.confidence >= 0.9 %}<span class="conf-badge high">置信度 {{ record.confidence|floatformat:2 }}</span>
+                    {% elif record.confidence >= 0.7 %}<span class="conf-badge mid">置信度 {{ record.confidence|floatformat:2 }}</span>
+                    {% else %}<span class="conf-badge low">置信度 {{ record.confidence|floatformat:2 }}</span>{% endif %}
+                </div>
+                {% endif %}
+
+                <!-- 提取字段 -->
+                {% for key, value in extracted_fields.items %}
+                <div class="mb-3">
+                    <div class="fld-label">{{ key }}</div>
+                    <div class="fld-input">
+                        {% if value %}{{ value }}{% else %}<span class="text-muted">未识别到</span>{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+
+                <!-- 合规判定 -->
+                <div class="pt-3 border-top mt-4">
+                    <div class="fld-label mb-2">合规检测</div>
+                    <div class="d-flex gap-3">
+                        <div class="compliance-card flex-fill {% if record.is_compliant %}active-pass{% endif %}">
+                            <span class="material-symbols-outlined ms text-primary">check_circle</span>
+                            <div class="fw-bold text-primary">通过</div>
+                        </div>
+                        <div class="compliance-card flex-fill {% if not record.is_compliant %}active-fail{% endif %}">
+                            <span class="material-symbols-outlined ms text-danger">warning</span>
+                            <div class="fw-bold text-danger">待整改</div>
+                        </div>
+                        <div class="compliance-card flex-fill {% if not record.is_compliant and not record.missing_fields %}active-fail{% endif %}">
+                            <span class="material-symbols-outlined ms text-danger">cancel</span>
+                            <div class="fw-bold text-danger">不通过</div>
+                        </div>
+                    </div>
+                </div>
+
+                {% if record.missing_fields %}
+                <div class="alert alert-danger mt-3 mb-0 py-2">
+                    <div class="small fw-bold mb-1">缺失字段：</div>
+                    {% for field in record.missing_fields %}<span class="badge text-bg-danger me-1">{{ field }}</span>{% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- 合规判定规则说明 -->
+                <div class="mt-3 p-3 rounded" style="background:var(--surface-container-low);border:1px dashed var(--outline-variant);">
+                    <div class="small fw-bold mb-1"><span class="material-symbols-outlined align-middle" style="font-size:16px;">rule</span> 合规判定规则</div>
+                    <div class="small text-muted mb-2" style="line-height:1.7;">
+                        按 <b>GB 7718 标准</b>逐项检查 <b>{{ extracted_fields|length }}</b> 个必需字段：<br>
+                        <span class="text-secondary">{% for key, value in extracted_fields.items %}{{ key }}{% if not forloop.last %}、{% endif %}{% endfor %}</span><br>
+                        一个字段判为「已标注」需同时满足：①出现该字段的任一关键词；②关键词后能取到<b>非空的值</b>；③生产日期、净含量、生产许可证编号、产品标准代号还需符合格式。<br>
+                        全部达标 → <b class="text-primary">合规</b>；缺字段、只印字段名无内容、或内容格式不符 → <b class="text-danger">不合规</b>并列出具体原因。
+                    </div>
+                    <div class="small text-muted mb-0" style="line-height:1.6;">
+                        <b>判据来源：</b>依据 <b>GB 7718-2011《预包装食品标签通则》</b>，预包装食品标签须标注品名、配料、净含量、生产日期、保质期、产品标准代号、生产许可证编号、生产者名称与地址、产地等核心信息。
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="mt-4 d-flex gap-2">
+                    {% if image_url %}<a href="{{ image_url }}" target="_blank" class="btn btn-outline-primary flex-fill"><span class="material-symbols-outlined" style="font-size:18px;">visibility</span> 查看原图</a>{% endif %}
+                    <a href="{% url 'ocr_records' %}" class="btn btn-outline-secondary flex-fill"><span class="material-symbols-outlined" style="font-size:18px;">history</span> 全部记录</a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="card h-100">
+            <div class="card-body d-flex flex-column align-items-center justify-content-center text-center" style="min-height:420px;">
+                <span class="material-symbols-outlined" style="font-size:4rem;color:var(--primary-container);">inventory_2</span>
+                <h5 class="mt-3 fw-bold">等待图片识别</h5>
+                <p class="text-muted" style="max-width:340px;">在左侧上传食品外包装图片或使用摄像头拍照，识别结果将在此处展示。</p>
+                <div class="d-flex gap-3 text-start mt-3 text-muted small">
+                    <div><span class="material-symbols-outlined align-middle text-primary" style="font-size:16px;">check</span> 关键字段提取</div>
+                    <div><span class="material-symbols-outlined align-middle text-primary" style="font-size:16px;">check</span> 合规自动检测</div>
+                    <div><span class="material-symbols-outlined align-middle text-primary" style="font-size:16px;">check</span> 记录完整留存</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let cameraStream = null;
+
+    // 分类选择
+    const packagingInput = document.getElementById('packagingCategory');
+    document.querySelectorAll('.cat-pill').forEach(function (pill) {
+        pill.addEventListener('click', function () {
+            document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            packagingInput.value = pill.dataset.cat;
+        });
+    });
+
+    // 上传/拍照切换
+    function setMode(mode) {
+        const up = document.getElementById('uploadMode');
+        const cam = document.getElementById('cameraMode');
+        if (mode === 'upload') {
+            up.classList.add('active'); cam.classList.remove('active');
+            document.getElementById('dropZone').style.display = 'block';
+            document.getElementById('cameraWrap').style.display = 'none';
+            stopCamera();
+        } else {
+            cam.classList.add('active'); up.classList.remove('active');
+            document.getElementById('dropZone').style.display = 'none';
+            document.getElementById('cameraWrap').style.display = 'block';
+            startCamera();
+        }
+    }
+
+    // 拖拽上传
+    const dz = document.getElementById('dropZone');
+    ['dragover', 'dragenter'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.add('drag-over'); }));
+    ['dragleave', 'drop'].forEach(evt => dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.remove('drag-over'); }));
+    dz.addEventListener('drop', function (e) {
+        if (e.dataTransfer.files.length) {
+            document.getElementById('image').files = e.dataTransfer.files;
+            showPreview(e.dataTransfer.files[0]);
+        }
+    });
+
+    function showPreview(file) {
+        const preview = document.getElementById('preview');
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = 'block';
+        document.getElementById('dropHint').style.display = 'none';
+    }
+
+    document.getElementById('image').addEventListener('change', function (e) {
+        if (e.target.files.length) showPreview(e.target.files[0]);
+    });
+
+    async function startCamera() {
+        const video = document.getElementById('cameraVideo');
+        try {
+            cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            video.srcObject = cameraStream;
+            await video.play();
+        } catch (e) {
+            alert("无法访问摄像头：" + e.message);
+            setMode('upload');
+        }
+    }
+
+    function stopCamera() {
+        if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+        document.getElementById('cameraWrap').style.display = 'none';
+    }
+
+    function capturePhoto() {
+        const video = document.getElementById('cameraVideo');
+        const canvas = document.getElementById('cameraCanvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext("2d").drawImage(video, 0, 0);
+        canvas.toBlob(function (blob) {
+            const file = new File([blob], "camera.jpg", { type: "image/jpeg" });
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            document.getElementById('image').files = dt.files;
+            showPreview(file);
+            stopCamera();
+            document.getElementById('dropZone').style.display = 'block';
+            document.getElementById('cameraWrap').style.display = 'none';
+            document.getElementById('uploadMode').classList.add('active');
+            document.getElementById('cameraMode').classList.remove('active');
+        }, "image/jpeg", 0.9);
+    }
+</script>
+{% endblock %}

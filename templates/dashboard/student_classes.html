@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}我的班级 - 食品外包装文字识别检测系统{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <h1>我的班级</h1>
+    <div class="sub">浏览可加入的实训班级，提交申请并查看审核进度。</div>
+</div>
+
+<div class="row g-3">
+    <!-- 已加入班级 -->
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3"><span class="material-symbols-outlined text-primary align-middle">school</span> 我已加入的班级</h5>
+                {% for cls in my_classes %}
+                <div class="d-flex align-items-center justify-content-between p-3 rounded-3 mb-2" style="background:var(--surface-container-low);">
+                    <div>
+                        <div class="fw-bold">{{ cls.name }}</div>
+                        <div class="small text-secondary">{{ cls.description|default:"暂无描述" }}</div>
+                    </div>
+                    <span class="badge" style="background:var(--primary-container-soft);color:var(--primary);">已加入</span>
+                </div>
+                {% empty %}
+                <p class="text-muted mb-0">您尚未加入任何班级。</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <!-- 可申请班级 -->
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3"><span class="material-symbols-outlined text-primary align-middle">library_add</span> 可加入的班级</h5>
+                {% for cls in active_classes %}
+                <div class="d-flex align-items-center justify-content-between p-3 rounded-3 mb-2" style="background:var(--surface-container-low);">
+                    <div>
+                        <div class="fw-bold">{{ cls.name }} <span class="text-secondary fw-normal small">（{{ cls.student_count }} 人）</span></div>
+                        <div class="small text-secondary">{{ cls.description|default:"暂无描述" }}</div>
+                    </div>
+                    {% if cls.id in joined_ids %}
+                        <span class="badge" style="background:var(--primary-container-soft);color:var(--primary);">已加入</span>
+                    {% elif cls.id in requested_ids %}
+                        <span class="badge text-secondary" style="background:var(--surface-container);">待审核</span>
+                    {% else %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="class_id" value="{{ cls.id }}">
+                        <button type="submit" class="btn btn-outline-primary btn-sm">申请加入</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <p class="text-muted mb-0">当前没有可加入的班级。</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <!-- 我的申请 -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="fw-bold mb-3"><span class="material-symbols-outlined text-primary align-middle">pending_actions</span> 我的申请进度</h5>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr><th>班级</th><th>申请说明</th><th>状态</th><th>申请时间</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for r in my_requests %}
+                            <tr>
+                                <td class="fw-semibold">{{ r.target_class.name }}</td>
+                                <td class="text-secondary">{{ r.message|default:"-" }}</td>
+                                <td>
+                                    {% if r.status == 'pending' %}<span class="badge" style="background:var(--tertiary-container);color:#432900;">待审核</span>
+                                    {% elif r.status == 'approved' %}<span class="badge" style="background:var(--primary-container-soft);color:var(--primary);">已通过</span>
+                                    {% else %}<span class="badge" style="background:var(--error-container);color:#93000a;">已拒绝</span>{% endif %}
+                                </td>
+                                <td class="text-secondary">{{ r.created_at|date:"Y-m-d H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center text-muted py-4">暂无申请记录。</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

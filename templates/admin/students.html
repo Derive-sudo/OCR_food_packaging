@@ -1,0 +1,145 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}学生管理 - 管理端{% endblock %}
+{% block header_title %}学生管理{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h2 class="text-headline-lg text-on-surface">学生管理</h2>
+    <p class="text-body-md text-on-surface-variant mt-1">查看所有实训生及其 OCR 检测统计。</p>
+</div>
+
+<!-- 添加学生 -->
+<details class="bg-surface-container-lowest rounded-2xl shadow-soft border border-outline-variant/30 mb-6">
+    <summary class="cursor-pointer list-none px-6 py-4 flex items-center justify-between select-none">
+        <span class="flex items-center gap-2 text-title-lg text-on-surface"><span class="material-symbols-outlined text-primary">person_add</span> 添加学生</span>
+        <span class="material-symbols-outlined text-on-surface-variant">expand_more</span>
+    </summary>
+    <form method="post" class="px-6 pb-6 flex flex-wrap gap-4 items-end border-t border-outline-variant/20 pt-4">
+        {% csrf_token %}
+        <div class="flex-1 min-w-[160px]">
+            <label class="block text-label-md text-on-surface-variant mb-1">用户名</label>
+            <input class="w-full px-3 py-2 bg-surface-container-low border border-outline-variant/50 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary text-body-md text-on-surface outline-none" name="username" placeholder="学生账号" required>
+        </div>
+        <div class="flex-1 min-w-[160px]">
+            <label class="block text-label-md text-on-surface-variant mb-1">初始密码</label>
+            <input class="w-full px-3 py-2 bg-surface-container-low border border-outline-variant/50 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary text-body-md text-on-surface outline-none" type="password" name="password" placeholder="至少 6 位" required>
+        </div>
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-label-md text-on-surface-variant mb-1">邮箱（可选）</label>
+            <input class="w-full px-3 py-2 bg-surface-container-low border border-outline-variant/50 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary text-body-md text-on-surface outline-none" type="email" name="email" placeholder="student@example.com">
+        </div>
+        <button type="submit" class="bg-primary text-on-primary px-6 py-2 rounded-lg text-label-md hover:bg-surface-tint transition-colors h-[40px] flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">add</span> 添加</button>
+    </form>
+</details>
+
+<!-- 汇总卡片 -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter mb-6">
+    <div class="bg-surface-container-lowest rounded-xl p-stack-md shadow-soft border border-outline-variant/30 flex items-center gap-stack-md">
+        <div class="w-12 h-12 rounded-xl bg-secondary-container/30 flex items-center justify-center text-secondary">
+            <span class="material-symbols-outlined text-[24px]">groups</span>
+        </div>
+        <div>
+            <p class="text-label-md text-on-surface-variant uppercase tracking-wider">实训生总数</p>
+            <p class="text-headline-md text-on-surface">{{ student_count }}</p>
+        </div>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-stack-md shadow-soft border border-outline-variant/30 flex items-center gap-stack-md">
+        <div class="w-12 h-12 rounded-xl bg-primary-container/30 flex items-center justify-center text-primary">
+            <span class="material-symbols-outlined text-[24px]">fact_check</span>
+        </div>
+        <div>
+            <p class="text-label-md text-on-surface-variant uppercase tracking-wider">检测总数</p>
+            <p class="text-headline-md text-on-surface">{{ total_records }}</p>
+        </div>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-stack-md shadow-soft border border-outline-variant/30 flex items-center gap-stack-md">
+        <div class="w-12 h-12 rounded-xl bg-tertiary-container/30 flex items-center justify-center text-tertiary">
+            <span class="material-symbols-outlined text-[24px]">person_add</span>
+        </div>
+        <div>
+            <p class="text-label-md text-on-surface-variant uppercase tracking-wider">系统用户</p>
+            <p class="text-headline-md text-on-surface">{{ total_users }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- 学生数据表 -->
+<div class="bg-surface-container-lowest rounded-2xl shadow-soft border border-outline-variant/20 overflow-hidden flex flex-col">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-surface-container-low/50 border-b border-outline-variant/40">
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold uppercase tracking-wider">学生</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold uppercase tracking-wider">邮箱</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold uppercase tracking-wider">注册时间</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold uppercase tracking-wider">检测次数</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold uppercase tracking-wider">合规通过率</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold uppercase tracking-wider">操作</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant/20">
+                {% for row in rows %}
+                <tr class="hover:bg-surface-container-low/30 transition-colors">
+                    <td class="py-4 px-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-sm">{{ row.user.username|slice:":1"|upper }}</div>
+                            <div>
+                                <p class="text-[14px] font-semibold text-on-surface">{{ row.user.get_full_name|default:row.user.username }}</p>
+                                <p class="text-[12px] text-on-surface-variant">@{{ row.user.username }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4 px-6 text-body-md text-on-surface-variant">{{ row.user.email|default:"-" }}</td>
+                    <td class="py-4 px-6 text-body-md text-on-surface-variant">{{ row.user.date_joined|date:"Y-m-d" }}</td>
+                    <td class="py-4 px-6 text-[14px] font-medium text-on-surface">{{ row.total_records }}</td>
+                    <td class="py-4 px-6">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[14px] font-medium {% if row.pass_rate >= 80 %}text-primary{% else %}text-error{% endif %}">{{ row.pass_rate|floatformat:0 }}%</span>
+                            <div class="w-16 h-1.5 bg-surface-variant rounded-full overflow-hidden">
+                                <div class="h-full rounded-full {% if row.pass_rate >= 80 %}bg-primary{% else %}bg-error{% endif %}" style="width: {{ row.pass_rate|floatformat:0 }}%;"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4 px-6">
+                        <details class="relative inline-block">
+                            <summary class="cursor-pointer list-none inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-outline-variant/40 text-label-md text-on-surface-variant hover:bg-surface-container transition-colors">
+                                <span class="material-symbols-outlined text-[18px]">more_vert</span> 管理
+                            </summary>
+                            <div class="absolute right-0 mt-1 z-20 w-56 bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant/30 p-3 flex flex-col gap-3">
+                                <form method="post" class="flex flex-col gap-1.5">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="edit_student">
+                                    <input type="hidden" name="student_id" value="{{ row.user.id }}">
+                                    <span class="text-label-md text-on-surface-variant">编辑信息</span>
+                                    <input class="px-2 py-1.5 bg-white border border-outline-variant/50 rounded-lg text-body-md" name="first_name" value="{{ row.user.first_name }}" placeholder="姓名">
+                                    <input class="px-2 py-1.5 bg-white border border-outline-variant/50 rounded-lg text-body-md" name="email" value="{{ row.user.email }}" placeholder="邮箱">
+                                    <button type="submit" class="bg-secondary text-on-primary rounded-lg py-1.5 text-label-md font-bold">保存</button>
+                                </form>
+                                <form method="post" class="flex flex-col gap-1.5 border-t border-outline-variant/20 pt-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="reset_password">
+                                    <input type="hidden" name="student_id" value="{{ row.user.id }}">
+                                    <span class="text-label-md text-on-surface-variant">重置密码</span>
+                                    <input class="px-2 py-1.5 bg-white border border-outline-variant/50 rounded-lg text-body-md" name="new_password" placeholder="新密码（≥6位）" required>
+                                    <button type="submit" class="bg-primary text-on-primary rounded-lg py-1.5 text-label-md font-bold">重置</button>
+                                </form>
+                                <form method="post" class="border-t border-outline-variant/20 pt-2" onsubmit="return confirm('确定删除该学生账号？其检测记录将一并删除。');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_student">
+                                    <input type="hidden" name="student_id" value="{{ row.user.id }}">
+                                    <button type="submit" class="w-full bg-error text-on-primary rounded-lg py-1.5 text-label-md font-bold">删除账号</button>
+                                </form>
+                            </div>
+                        </details>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="py-10 text-center text-on-surface-variant">暂无学生数据</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "admin/_pagination.html" %}
+</div>
+{% endblock %}

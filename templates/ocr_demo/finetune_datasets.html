@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}训练数据集{% endblock %}
+{% block content %}
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="mb-1">📁 训练数据集</h1>
+        <p class="text-muted mb-0">管理用于模型微调的训练数据集。</p>
+    </div>
+    <a href="{% url 'finetune_dataset_create' %}" class="btn btn-primary">+ 新建数据集</a>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label mb-1">关键词</label>
+                <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="名称 / 描述">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label mb-1">类型</label>
+                <select name="dataset_type" class="form-select form-select-sm">
+                    <option value="">全部</option>
+                    <option value="food_label" {% if dataset_type == "food_label" %}selected{% endif %}>食品标签</option>
+                    <option value="general" {% if dataset_type == "general" %}selected{% endif %}>通用文字</option>
+                    <option value="custom" {% if dataset_type == "custom" %}selected{% endif %}>自定义</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">筛选</button>
+                <a href="{% url 'finetune_datasets' %}" class="btn btn-outline-secondary btn-sm">清空</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>名称</th><th>类型</th><th>描述</th><th>创建时间</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+                {% for ds in datasets %}
+                <tr>
+                    <td class="fw-semibold">{{ ds.name }}</td>
+                    <td>{{ ds.get_dataset_type_display }}</td>
+                    <td class="text-muted">{{ ds.description|truncatechars:30 }}</td>
+                    <td>{{ ds.created_at|date:"Y-m-d H:i" }}</td>
+                    <td><a href="{% url 'finetune_dataset_detail' ds.id %}" class="btn btn-sm btn-outline-primary">管理</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-4">暂无数据集</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% include "includes/pagination.html" %}
+{% endblock %}

@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}{{ job.name }}{% endblock %}
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="mb-1">⚙️ {{ job.name }}</h1>
+        <p class="text-muted mb-0">状态：<span id="job-status">{{ job.get_status_display }}</span></p>
+    </div>
+    <a href="{% url 'finetune_jobs' %}" class="btn btn-outline-secondary">返回列表</a>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-3 mb-2"><span class="text-muted">数据集</span><br><strong>{{ job.dataset.name }}</strong></div>
+            <div class="col-md-2 mb-2"><span class="text-muted">轮数</span><br><strong>{{ job.epochs }}</strong></div>
+            <div class="col-md-2 mb-2"><span class="text-muted">批次</span><br><strong>{{ job.batch_size }}</strong></div>
+            <div class="col-md-2 mb-2"><span class="text-muted">学习率</span><br><strong>{{ job.learning_rate }}</strong></div>
+            <div class="col-md-3 mb-2"><span class="text-muted">创建时间</span><br><strong>{{ job.created_at|date:"Y-m-d H:i" }}</strong></div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-3 mb-2"><span class="text-muted">基础模型</span><br><strong>{{ job.get_base_model_display }}</strong></div>
+            <div class="col-md-3 mb-2"><span class="text-muted">优化器</span><br><strong>{{ job.get_optimizer_display }}</strong></div>
+            <div class="col-md-2 mb-2"><span class="text-muted">图片宽度</span><br><strong>{{ job.image_size }}</strong></div>
+            <div class="col-md-2 mb-2"><span class="text-muted">冻结 Backbone</span><br><strong>{% if job.freeze_backbone %}是{% else %}否{% endif %}</strong></div>
+            <div class="col-md-2 mb-2"><span class="text-muted">Cosine</span><br><strong>{% if job.cosine_lr %}是{% else %}否{% endif %}</strong></div>
+        </div>
+
+        <label class="form-label">训练进度</label>
+        <div class="progress mb-3" style="height: 20px;">
+            <div class="progress-bar" id="progress-bar" role="progressbar" style="width: {{ job.progress }}%;">{{ job.progress }}%</div>
+        </div>
+
+        <div class="d-flex gap-2 mb-3">
+            <button class="btn btn-success btn-sm" id="startBtn" onclick="jobAction('start')">▶ 开始训练</button>
+            <button class="btn btn-danger btn-sm" id="stopBtn" onclick="jobAction('stop')">■ 停止</button>
+        </div>
+
+        <label class="form-label">训练曲线</label>
+        <div class="chart-container mb-3">
+            <canvas id="trainingChart"></canvas>
+        </div>
+
+        <label class="form-label">训练日志</label>
+        <pre id="log-area" class="bg-light p-3 rounded" style="max-height:260px;overflow:auto;font-size:13px;"></pre>
+    </div>
+</div>
+
+<style>
+    .chart-container { background: #f9fafb; border-radius: 10px; padding: 20px; margin-bottom: 20px; position: relative; height: 320px; }
+    .chart-container canvas { max-height: 280px; width: 100% !important; }
+</style>
+
+<script>
+function getCookie(name) {
+    let v = null;
+    if (document.cookie && document.cookie !== '') {
+        const parts = document.cookie.split(';');
+        for (const p of parts) {
+            const c = p.trim();
+            if (c.startsWith(name + '=')) { v = decodeURIComponent(c.substring(name.length + 1)); break; }
+        }
+    }
+    return v;
+}
+
+let chartInstance = null;
+let pollTimer = null;
+
+function initChart() {
+    const ctx = document.getElementById('trainingChart').getContext('2d');
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [
+                {
+                    label: '训练损失 train_loss',
+                    data: [],
+                    borderColor: '#2170e4',
+                    backgroundColor: 'rgba(33, 112, 228, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    tension: 0.3,
+                    yAxisID: 'y'
+                },
+                {
+                    label: '训练准确率 train_acc',
+                    data: [],
+                    borderColor: '#2e7d32',
+                    backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                },
+                {
+                    label: '验证准确率 val_acc',
+                    data: [],
+                    borderColor: '#ba1a1a',
+                    backgroundColor: 'rgba(186, 26, 26, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    tension: 0.3,
+                    yAxisID: 'y1'
+                },
+                {
+                    label: '验证损失 val_loss',
+                    data: [],
+                    borderColor: '#8e24aa',
+                    backgroundColor: 'rgba(142, 36, 170, 0.1)',
+                    borderWidth: 2,
+                    borderDash: [6, 4],
+                    pointRadius: 3,
+                    tension: 0.3,
+                    yAxisID: 'y'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } } },
+            scales: {
+                x: { grid: { color: 'rgba(0,0,0,0.05)' }, title: { display: true, text: '迭代步' } },
+                y: {
+                    type: 'linear', position: 'left',
+                    grid: { color: 'rgba(0,0,0,0.05)' },
+                    title: { display: true, text: 'Loss' }
+                },
+                y1: {
+                    type: 'linear', position: 'right', min: 0, max: 1,
+                    grid: { drawOnChartArea: false },
+                    title: { display: true, text: 'Accuracy' }
+                }
+            }
+        }
+    });
+}
+
+function renderChart(metrics) {
+    if (!chartInstance) return;
+    const loss = metrics.train_loss || [];
+    const trainAcc = metrics.train_acc || [];
+    const valAcc = metrics.val_acc || [];
+    const valLoss = metrics.val_loss || [];
+    chartInstance.data.labels = loss.map((_, i) => i + 1);
+    chartInstance.data.datasets[0].data = loss;
+    chartInstance.data.datasets[1].data = trainAcc;
+    chartInstance.data.datasets[2].data = valAcc;
+    chartInstance.data.datasets[3].data = valLoss;
+    chartInstance.update();
+}
+
+function jobAction(action) {
+    const url = action === 'start'
+        ? "{% url 'finetune_job_start' job.id %}"
+        : "{% url 'finetune_job_stop' job.id %}";
+    fetch(url, { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') } })
+        .then(r => r.json())
+        .then(data => {
+            alert(data.message);
+            if (action === 'start') {
+                if (!pollTimer) pollTimer = setInterval(refresh, 3000);
+            }
+            refresh();
+        });
+}
+
+function refresh() {
+    fetch("{% url 'finetune_job_logs' job.id %}")
+        .then(r => r.json())
+        .then(data => {
+            const statusMap = { pending: '等待中', running: '运行中', completed: '已完成', failed: '失败', stopped: '已停止' };
+            document.getElementById('job-status').textContent = statusMap[data.status] || data.status;
+            document.getElementById('progress-bar').style.width = data.progress + '%';
+            document.getElementById('progress-bar').textContent = data.progress + '%';
+
+            const lc = document.getElementById('log-area');
+            lc.textContent = data.logs || '（暂无日志）';
+            lc.scrollTop = lc.scrollHeight;
+
+            renderChart(data.metrics || {});
+
+            if (data.status === 'completed' || data.status === 'failed' || data.status === 'stopped') {
+                if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+            }
+        });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initChart();
+    refresh();
+    pollTimer = setInterval(refresh, 3000);
+});
+</script>
+{% endblock %}

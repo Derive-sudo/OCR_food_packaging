@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}{{ dataset.name }}{% endblock %}
+
+{% block content %}
+<div class="page-heading d-flex justify-content-between align-items-end flex-wrap gap-2">
+    <div>
+        <h1><span class="material-symbols-outlined align-middle" style="font-size:1.6rem;">folder</span> {{ dataset.name }}</h1>
+        <div class="sub">{{ dataset.get_dataset_type_display }} · {{ dataset.description|default:"暂无描述" }}</div>
+    </div>
+    <div class="d-flex gap-2">
+        <form method="post" action="{% url 'finetune_dataset_prelabel' dataset.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-primary"><span class="material-symbols-outlined" style="font-size:18px;">auto_awesome</span> 批量预标注</button>
+        </form>
+        <a href="{% url 'finetune_dataset_export' dataset.id %}" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:18px;">download</span> 导出 rec 训练集</a>
+        <a href="{% url 'finetune_datasets' %}" class="btn btn-outline-secondary">返回列表</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md">
+        <div class="card stat-card h-100" style="border-left:4px solid var(--primary);">
+            <div class="card-body"><div class="stat-label mb-1">总图片</div><div class="stat-value">{{ total }}</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card stat-card h-100" style="border-left:4px solid var(--outline);">
+            <div class="card-body"><div class="stat-label mb-1">待标注</div><div class="stat-value">{{ pending }}</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card stat-card h-100" style="border-left:4px solid var(--tertiary);">
+            <div class="card-body"><div class="stat-label mb-1">待审核</div><div class="stat-value">{{ pre_annotated }}</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card stat-card h-100" style="border-left:4px solid var(--secondary);">
+            <div class="card-body"><div class="stat-label mb-1">已修正</div><div class="stat-value">{{ annotated }}</div></div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card stat-card h-100" style="border-left:4px solid var(--primary-container);">
+            <div class="card-body"><div class="stat-label mb-1">已审核</div><div class="stat-value">{{ verified }}</div></div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="post" action="{% url 'finetune_image_upload' dataset.id %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <label class="form-label">上传训练图片（可多选，上传后自动 OCR 预标注）</label>
+            <div class="input-group">
+                <input type="file" name="images" class="form-control" multiple accept="image/*" required>
+                <button type="submit" class="btn btn-primary"><span class="material-symbols-outlined" style="font-size:18px;">upload</span> 上传</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+    {% for img in images %}
+    <div class="col-md-3 col-6">
+        <div class="card h-100 shadow-sm">
+            <img src="{{ img.image.url }}" class="card-img-top" style="height:140px;object-fit:cover;" alt="">
+            <div class="card-body p-2">
+                {% if img.annotation_status == 'pre_annotated' %}
+                    <span class="badge" style="background:var(--tertiary-container);color:var(--tertiary);">{{ img.get_annotation_status_display }}</span>
+                {% elif img.annotation_status == 'annotated' %}
+                    <span class="badge" style="background:var(--primary-container-soft);color:var(--primary);">{{ img.get_annotation_status_display }}</span>
+                {% elif img.annotation_status == 'verified' %}
+                    <span class="badge text-bg-success">{{ img.get_annotation_status_display }}</span>
+                {% elif img.annotation_status == 'rejected' %}
+                    <span class="badge text-bg-danger">{{ img.get_annotation_status_display }}</span>
+                {% else %}
+                    <span class="badge text-bg-secondary">{{ img.get_annotation_status_display }}</span>
+                {% endif %}
+                {% if img.structured_fields %}
+                <div class="mt-1 small text-muted" style="line-height:1.5;max-height:72px;overflow:hidden;">
+                    {% for name, val in img.structured_fields.items %}
+                        {% if val %}<span class="d-inline-block me-1">✔{{ name }}：{{ val }}</span>{% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="mt-2">
+                    <a href="{% url 'finetune_image_annotate' dataset.id img.id %}" class="btn btn-sm btn-outline-primary w-100">标注/修正</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center text-muted py-4">
+        <span class="material-symbols-outlined d-block" style="font-size:3rem;color:var(--primary-container);">inbox</span>
+        <p class="mt-2 mb-0">暂无图片，请先上传</p>
+    </div>
+    {% endfor %}
+</div>
+{% include "includes/pagination.html" %}
+{% endblock %}

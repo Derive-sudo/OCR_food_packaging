@@ -1,0 +1,510 @@
+<!-- templates/finetune.html - 完全按照截图风格设计 -->
+{% extends "base.html" %}
+
+{% block title %}模型微调 - 食品包装文字识别系统{% endblock %}
+
+{% block extra_head %}
+<!-- 引入 Chart.js 绘制训练曲线 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+    .finetune-container { max-width: 1400px; margin: 0 auto; }
+    
+    /* 左侧面板 - 模型选择 */
+    .model-panel { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; }
+    .model-panel h6 { font-size: 13px; color: #6b7280; font-weight: 600; margin-bottom: 12px; }
+    .model-option { border: 1px solid var(--outline-variant); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; display: flex; align-items: flex-start; gap: 12px; background: #fff; }
+    .model-option:hover { border-color: var(--primary); background: var(--surface-container-low); }
+    .model-option.selected { border-color: var(--primary); background: var(--primary-container-soft); box-shadow: 0 0 0 1px var(--primary); }
+    .model-option .radio-circle { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--outline-variant); flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; }
+    .model-option.selected .radio-circle { border-color: var(--primary); }
+    .model-option.selected .radio-circle::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+    .model-option .model-name { font-weight: 600; font-size: 14px; color: #1f2937; }
+    .model-option .model-desc { font-size: 12px; color: #6b7280; margin-top: 2px; line-height: 1.4; }
+    
+    /* 右侧面板 - 训练控制 */
+    .train-panel { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 24px; }
+    
+    /* 超参数区域 */
+    .hyper-params { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 24px; }
+    .param-item { flex: 1; min-width: 120px; max-width: 180px; }
+    .param-item label { font-size: 12px; color: #6b7280; font-weight: 500; margin-bottom: 4px; display: block; }
+    .param-item .value-display { font-size: 14px; font-weight: 600; color: #1f2937; margin-top: 2px; }
+    .form-range { height: 6px; }
+    .form-range::-webkit-slider-thumb { background: var(--primary); }
+    
+    /* 训练状态条 */
+    .train-status { background: #f9fafb; border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 20px; margin-bottom: 24px; flex-wrap: wrap; }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+    .status-dot.running { background: var(--primary); animation: pulse 1.5s infinite; }
+    .status-dot.idle { background: #9ca3af; }
+    .status-dot.completed { background: var(--primary); }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+    .train-status .epoch-info { font-size: 14px; font-weight: 500; color: #1f2937; }
+    .train-status .epoch-info small { font-weight: 400; color: #6b7280; }
+    
+    /* 训练曲线图容器 */
+    .chart-container { background: #f9fafb; border-radius: 10px; padding: 20px; margin-bottom: 20px; position: relative; height: 320px; }
+    .chart-container canvas { max-height: 280px; width: 100% !important; }
+    
+    /* 训练日志 */
+    .log-container { background: #f9fafb; border-radius: 10px; padding: 16px; max-height: 160px; overflow-y: auto; font-family: monospace; font-size: 13px; color: #374151; }
+    .log-container::-webkit-scrollbar { width: 4px; }
+    .log-container::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
+    
+    /* 数据统计卡片 */
+    .stats-panel { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px; margin-top: 20px; }
+    .stats-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+    .stats-item:last-child { border-bottom: none; }
+    .stats-item .label { color: #6b7280; }
+    .stats-item .value { font-weight: 500; color: #1f2937; }
+    .warning-text { color: var(--error); font-size: 13px; display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+    
+    /* 小屏适配 */
+    @media (max-width: 768px) {
+        .sidebar { display: none !important; }
+        .hyper-params .param-item { min-width: 80px; flex: 1 0 40%; }
+        .train-status { flex-direction: column; align-items: flex-start; gap: 8px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h5 class="mb-0 fw-bold"><span class="material-symbols-outlined align-middle text-primary">tune</span> 模型微调</h5>
+        <small class="text-secondary">调整识别参数 · 管理数据集与训练任务</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'finetune_datasets' %}" class="btn btn-outline-primary btn-sm">📁 数据集</a>
+        <a href="{% url 'finetune_jobs' %}" class="btn btn-outline-primary btn-sm">⚙️ 训练任务</a>
+    </div>
+</div>
+<div class="finetune-container">
+    <div class="row g-4">
+        
+        <!-- 左侧：模型选择（占 3 或 4 列） -->
+        <div class="col-lg-3 col-md-4">
+            <div class="model-panel">
+                <h6>🔬 识别模型</h6>
+                <form method="post" action="{% url 'finetune_set_model' %}" id="modelForm">
+                    {% csrf_token %}
+
+                    <label class="model-option {% if site_settings.rec_model == 'official' %}selected{% endif %}">
+                        <input type="radio" name="model" value="official" class="d-none"
+                               {% if site_settings.rec_model == 'official' %}checked{% endif %}>
+                        <span class="radio-circle"></span>
+                        <span>
+                            <span class="model-name d-block">默认 OCR（官方 PP-OCRv4）</span>
+                            <span class="model-desc d-block">通用中文识别，检测 + 识别 + 方向分类完整流程</span>
+                        </span>
+                    </label>
+
+                    <label class="model-option {% if site_settings.rec_model == 'finetuned' %}selected{% endif %}">
+                        <input type="radio" name="model" value="finetuned" class="d-none"
+                               {% if site_settings.rec_model == 'finetuned' %}checked{% endif %}>
+                        <span class="radio-circle"></span>
+                        <span>
+                            <span class="model-name d-block">OCR 微调模型</span>
+                            <span class="model-desc d-block">用食品标签数据微调出的识别模型（rec）</span>
+                        </span>
+                    </label>
+
+                    <div id="finetunedDirBox" {% if site_settings.rec_model != 'finetuned' %}hidden{% endif %}>
+                        <div class="small text-secondary mb-2" style="line-height:1.4;">
+                            ✅ 已直接使用训练好的微调模型，无需手动填写目录。
+                        </div>
+                    </div>
+
+                    <label class="model-option {% if site_settings.rec_model == 'db_det' %}selected{% endif %}">
+                        <input type="radio" name="model" value="db_det" class="d-none"
+                               {% if site_settings.rec_model == 'db_det' %}checked{% endif %}>
+                        <span class="radio-circle"></span>
+                        <span>
+                            <span class="model-name d-block">DB 文本检测</span>
+                            <span class="model-desc d-block">基础 DB 检测算法，只框出文字区域（不识别）</span>
+                        </span>
+                    </label>
+
+                    <label class="model-option {% if site_settings.rec_model == 'crnn_rec' %}selected{% endif %}">
+                        <input type="radio" name="model" value="crnn_rec" class="d-none"
+                               {% if site_settings.rec_model == 'crnn_rec' %}checked{% endif %}>
+                        <span class="radio-circle"></span>
+                        <span>
+                            <span class="model-name d-block">CRNN 文字识别</span>
+                            <span class="model-desc d-block">CRNN 识别算法，只识别文字（不检测）</span>
+                        </span>
+                    </label>
+
+                    <label class="model-option {% if site_settings.rec_model == 'custom' %}selected{% endif %}">
+                        <input type="radio" name="model" value="custom" class="d-none"
+                               {% if site_settings.rec_model == 'custom' %}checked{% endif %}>
+                        <span class="radio-circle"></span>
+                        <span>
+                            <span class="model-name d-block">自定义微调模型</span>
+                            <span class="model-desc d-block">加载你微调出的推理模型（inference 目录）</span>
+                        </span>
+                    </label>
+
+                    <div id="customDirBox" {% if site_settings.rec_model != 'custom' %}hidden{% endif %}>
+                        <label class="form-label small text-secondary mb-1" for="customModelDir">推理模型目录</label>
+                        <input type="text" class="form-control form-control-sm mb-2" id="customModelDir"
+                               name="custom_model_dir" value="{{ site_settings.custom_model_dir }}"
+                               placeholder="例如 model_train/output/rec_ppocr_v4/inference">
+                        <div class="small text-secondary mb-2" style="line-height:1.4;">目录内需包含 inference.pdmodel / inference.pdiparams（训练后由 finetune_rec.py 自动导出）。</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-sm w-100">应用模型</button>
+                </form>
+
+                <div class="small text-secondary mt-3" style="line-height:1.5;">
+                    识别结果会自动抽取 5 个字段：<strong>生产日期 · 保质期 · 配料 · 生产厂家 · 净含量</strong>。
+                </div>
+
+                <!-- 训练数据统计（在左侧底部） -->
+                <div class="stats-panel mt-4 p-3">
+                    <div class="stats-item"><span class="label">训练数据集</span><span class="value">{{ dataset_count }}</span></div>
+                    <div class="stats-item"><span class="label">训练图片</span><span class="value">{{ image_count }}</span></div>
+                    <div class="stats-item"><span class="label">训练任务</span><span class="value">{{ job_count }}</span></div>
+                    {% if image_count < 20 %}
+                    <div class="warning-text">
+                        <span class="material-symbols-outlined" style="font-size:16px;">warning</span> 样本不足，建议至少收集 20 张再进行微调（当前 {{ image_count }} 张）
+                    </div>
+                    {% else %}
+                    <div class="small mt-2" style="color:#0b6e4f;">
+                        <span class="material-symbols-outlined" style="font-size:16px; vertical-align:-3px;">check_circle</span> 样本充足（{{ image_count }} 张），可以开始微调
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：训练控制（占 9 或 8 列） -->
+        <div class="col-lg-9 col-md-8">
+            <div class="train-panel">
+
+                <!-- 0. 训练配置：数据集 + 基础模型 -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small text-secondary mb-1">训练数据集</label>
+                        <select class="form-select form-select-sm" id="trainDataset" name="dataset_id">
+                            {% for ds in train_datasets %}
+                            <option value="{{ ds.id }}">{{ ds.name }}</option>
+                            {% empty %}
+                            <option value="">（暂无数据集，请先上传并标注）</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-secondary mb-1">基础模型</label>
+                        <select class="form-select form-select-sm" id="baseModel" name="base_model">
+                            <option value="official">官方 PP-OCRv4 rec 预训练</option>
+                            <option value="local">本地最新微调 checkpoint</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 1. 超参数行 -->
+                <div class="hyper-params">
+                    <div class="param-item">
+                        <label>Epochs</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <input type="range" class="form-range" id="epochsRange" min="1" max="50" value="10" 
+                                   oninput="document.getElementById('epochsVal').textContent = this.value">
+                            <span class="value-display" id="epochsVal">10</span>
+                        </div>
+                    </div>
+                    <div class="param-item">
+                        <label>Batch Size</label>
+                        <select class="form-select form-select-sm" id="batchSize">
+                            <option value="2">2</option>
+                            <option value="4" selected>4</option>
+                            <option value="8">8</option>
+                            <option value="16">16</option>
+                            <option value="32">32</option>
+                        </select>
+                    </div>
+                    <div class="param-item">
+                        <label>Learning Rate</label>
+                        <select class="form-select form-select-sm" id="learningRate">
+                            <option value="0.01">0.01</option>
+                            <option value="0.001" selected>0.001</option>
+                            <option value="0.0001">0.0001</option>
+                        </select>
+                    </div>
+                    <div class="param-item">
+                        <label>Optimizer</label>
+                        <select class="form-select form-select-sm" id="optimizer">
+                            <option value="adam" selected>Adam</option>
+                            <option value="adamw">AdamW</option>
+                            <option value="momentum">Momentum (SGD)</option>
+                        </select>
+                    </div>
+                    <div class="param-item">
+                        <label>Image Size</label>
+                        <select class="form-select form-select-sm" id="imageSize">
+                            <option value="320">320</option>
+                            <option value="640" selected>640</option>
+                            <option value="1024">1024</option>
+                        </select>
+                    </div>
+                    <div class="param-item d-flex align-items-end gap-2" style="min-width: 140px;">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="freezeBackbone">
+                            <label class="form-check-label" for="freezeBackbone" style="font-size: 12px;">冻结 Backbone</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="cosineLR" checked>
+                            <label class="form-check-label" for="cosineLR" style="font-size: 12px;">Cosine LR</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 训练状态行 -->
+                <div class="train-status">
+                    <span class="status-dot idle" id="statusDot"></span>
+                    <span class="epoch-info" id="statusText">未开始训练。选择数据集与超参数后点击「开始训练」。</span>
+                    <div class="ms-auto">
+                        <button class="btn btn-primary btn-sm" id="startBtn" onclick="startTraining()">
+                            <i class="bi bi-play-fill"></i> 开始训练
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" id="stopBtn" onclick="stopTraining()" disabled>
+                            <i class="bi bi-stop-fill"></i> 停止
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. 训练曲线图表 -->
+                <div class="chart-container">
+                    <canvas id="trainingChart"></canvas>
+                </div>
+
+                <!-- 4. 训练日志 -->
+                <div class="log-container" id="logContainer" style="white-space: pre-wrap;">等待训练启动…</div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==================== 模型选择逻辑 ====================
+    function toggleModelDirs() {
+        const custom = document.querySelector('input[name="model"][value="custom"]');
+        const finetuned = document.querySelector('input[name="model"][value="finetuned"]');
+        const customBox = document.getElementById('customDirBox');
+        const finetunedBox = document.getElementById('finetunedDirBox');
+        if (customBox) customBox.hidden = !(custom && custom.checked);
+        if (finetunedBox) finetunedBox.hidden = !(finetuned && finetuned.checked);
+        document.querySelectorAll('.model-option').forEach(opt => {
+            const r = opt.querySelector('input[type="radio"]');
+            opt.classList.toggle('selected', !!(r && r.checked));
+        });
+    }
+    document.querySelectorAll('input[name="model"]').forEach(r => r.addEventListener('change', toggleModelDirs));
+
+    // ==================== 真实训练曲线 ====================
+    let chartInstance = null;
+    const STOP_URL = "{% url 'finetune_job_stop' 999999 %}".replace('999999', '__ID__');
+    const LOGS_URL = "{% url 'finetune_job_logs' 999999 %}".replace('999999', '__ID__');
+
+    function initChart() {
+        const ctx = document.getElementById('trainingChart').getContext('2d');
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: '训练损失 train_loss',
+                        data: [],
+                        borderColor: '#2170e4',
+                        backgroundColor: 'rgba(33, 112, 228, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 2,
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '训练准确率 train_acc',
+                        data: [],
+                        borderColor: '#2e7d32',
+                        backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 2,
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    },
+                    {
+                        label: '验证准确率 val_acc',
+                        data: [],
+                        borderColor: '#ba1a1a',
+                        backgroundColor: 'rgba(186, 26, 26, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    },
+                    {
+                        label: '验证损失 val_loss',
+                        data: [],
+                        borderColor: '#8e24aa',
+                        backgroundColor: 'rgba(142, 36, 170, 0.1)',
+                        borderWidth: 2,
+                        borderDash: [6, 4],
+                        pointRadius: 3,
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } } },
+                scales: {
+                    x: { grid: { color: 'rgba(0,0,0,0.05)' }, title: { display: true, text: '迭代步' } },
+                    y: {
+                        type: 'linear', position: 'left',
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        title: { display: true, text: 'Loss' }
+                    },
+                    y1: {
+                        type: 'linear', position: 'right', min: 0, max: 1,
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'Accuracy' }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderChart(metrics) {
+        if (!chartInstance) return;
+        const loss = metrics.train_loss || [];
+        const trainAcc = metrics.train_acc || [];
+        const valAcc = metrics.val_acc || [];
+        const valLoss = metrics.val_loss || [];
+        chartInstance.data.labels = loss.map((_, i) => i + 1);
+        chartInstance.data.datasets[0].data = loss;
+        chartInstance.data.datasets[1].data = trainAcc;
+        chartInstance.data.datasets[2].data = valAcc;
+        chartInstance.data.datasets[3].data = valLoss;
+        chartInstance.update();
+    }
+
+    // ==================== 真实训练 ====================
+    let pollTimer = null;
+    let isTraining = false;
+    let jobId = null;
+
+    function getCookie(name) {
+        let v = null;
+        if (document.cookie && document.cookie !== '') {
+            const parts = document.cookie.split(';');
+            for (const p of parts) {
+                const c = p.trim();
+                if (c.startsWith(name + '=')) { v = decodeURIComponent(c.substring(name.length + 1)); break; }
+            }
+        }
+        return v;
+    }
+
+    function readParams() {
+        const ds = document.getElementById('trainDataset');
+        if (!ds || !ds.value) {
+            alert('请先创建数据集并上传图片，再开始训练。');
+            return null;
+        }
+        const form = new FormData();
+        form.append('dataset_id', ds.value);
+        form.append('epochs', document.getElementById('epochsRange').value);
+        form.append('batch_size', document.getElementById('batchSize').value);
+        form.append('learning_rate', document.getElementById('learningRate').value);
+        form.append('optimizer', document.getElementById('optimizer').value);
+        form.append('image_size', document.getElementById('imageSize').value);
+        form.append('base_model', document.getElementById('baseModel').value);
+        if (document.getElementById('freezeBackbone').checked) form.append('freeze_backbone', 'on');
+        if (document.getElementById('cosineLR').checked) form.append('cosine_lr', 'on');
+        return form;
+    }
+
+    function startTraining() {
+        if (isTraining) return;
+        const form = readParams();
+        if (!form) return;
+        fetch("{% url 'finetune_start_training' %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            body: form
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) { alert(data.message || '训练启动失败'); return; }
+            jobId = data.job_id;
+            isTraining = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('statusDot').className = 'status-dot running';
+            pollTimer = setInterval(pollLogs, 3000);
+            pollLogs();
+        })
+        .catch(() => alert('训练启动失败，请重试。'));
+    }
+
+    function stopTraining() {
+        if (!isTraining || !jobId) return;
+        fetch(STOP_URL.replace('__ID__', jobId), {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        }).then(r => r.json()).then(() => {});
+    }
+
+    function pollLogs() {
+        if (!jobId) return;
+        fetch(LOGS_URL.replace('__ID__', jobId))
+            .then(r => r.json())
+            .then(data => {
+                const statusMap = { pending: '等待中', running: '运行中', completed: '已完成', failed: '失败', stopped: '已停止' };
+                const status = statusMap[data.status] || data.status;
+                const m = data.metrics || {};
+                const lc = document.getElementById('logContainer');
+                lc.textContent = data.logs || '（暂无日志）';
+                lc.scrollTop = lc.scrollHeight;
+
+                renderChart(m);
+
+                const curEpoch = (m.train_epoch && m.train_epoch.length) ? m.train_epoch[m.train_epoch.length - 1] : 0;
+                const totalEpochs = document.getElementById('epochsRange').value;
+                const lastLr = (m.lr && m.lr.length) ? m.lr[m.lr.length - 1].toFixed(6) : '—';
+                document.getElementById('statusText').innerHTML =
+                    '状态：' + status + ' &nbsp; epoch <span id="currentEpoch">' + curEpoch + '</span>/<span id="totalEpochs">' + totalEpochs + '</span>' +
+                    ' &nbsp; 进度 ' + (data.progress || 0) + '%' +
+                    ' &nbsp; lr: <span id="currentLr">' + lastLr + '</span>';
+
+                if (data.status === 'completed' || data.status === 'failed' || data.status === 'stopped') {
+                    clearInterval(pollTimer);
+                    isTraining = false;
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('stopBtn').disabled = true;
+                    if (data.status === 'completed') {
+                        document.getElementById('statusDot').className = 'status-dot completed';
+                        document.getElementById('statusText').innerHTML = '✅ 训练完成，共 ' + totalEpochs + ' 个 Epoch';
+                    } else if (data.status === 'failed') {
+                        document.getElementById('statusDot').className = 'status-dot idle';
+                        document.getElementById('statusText').innerHTML = '❌ 训练失败，请查看日志';
+                    } else {
+                        document.getElementById('statusDot').className = 'status-dot idle';
+                        document.getElementById('statusText').innerHTML = '⏸️ 训练已停止';
+                    }
+                }
+            });
+    }
+
+    // 页面加载完成后初始化图表
+    document.addEventListener('DOMContentLoaded', function() {
+        initChart();
+        toggleModelDirs();
+    });
+</script>
+{% endblock %}

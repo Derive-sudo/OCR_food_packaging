@@ -1,0 +1,68 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}班级管理 - 管理端{% endblock %}
+{% block header_title %}班级管理{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h2 class="text-headline-lg text-on-surface">班级管理</h2>
+    <p class="text-body-md text-on-surface-variant mt-1">管理实训班级，将学生分组并跟踪加入申请。</p>
+</div>
+
+<!-- 创建班级 -->
+<details class="bg-surface-container-lowest rounded-2xl shadow-soft border border-outline-variant/30 mb-6" open>
+    <summary class="cursor-pointer list-none px-6 py-4 flex items-center justify-between select-none">
+        <span class="flex items-center gap-2 text-title-lg text-on-surface"><span class="material-symbols-outlined text-primary">add</span> 新建班级</span>
+        <span class="material-symbols-outlined text-on-surface-variant">expand_more</span>
+    </summary>
+    <form method="post" class="px-6 pb-6 flex flex-wrap gap-4 items-end border-t border-outline-variant/20 pt-4">
+        {% csrf_token %}
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-label-md text-on-surface-variant mb-1">班级名称</label>
+            <input class="w-full px-3 py-2 bg-surface-container-low border border-outline-variant/50 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary text-body-md text-on-surface outline-none" name="name" placeholder="如：食品检测 2101 班" required>
+        </div>
+        <div class="flex-1 min-w-[200px]">
+            <label class="block text-label-md text-on-surface-variant mb-1">班级描述（可选）</label>
+            <input class="w-full px-3 py-2 bg-surface-container-low border border-outline-variant/50 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary text-body-md text-on-surface outline-none" name="description" placeholder="班级简介">
+        </div>
+        <button type="submit" class="bg-primary text-on-primary px-6 py-2 rounded-lg text-label-md hover:bg-surface-tint transition-colors h-[40px] flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">add</span> 创建</button>
+    </form>
+</details>
+
+<!-- 班级卡片 -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-gutter">
+    {% for cls in classes %}
+    <article class="bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant/40 hover:border-primary/40 hover:shadow-md transition-all duration-300 flex flex-col">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-xl {% if cls.is_active %}bg-primary-container/20 text-primary{% else %}bg-surface-container text-on-surface-variant{% endif %} flex items-center justify-center">
+                <span class="material-symbols-outlined text-[28px]">school</span>
+            </div>
+            <div>
+                <h3 class="text-title-lg text-on-surface">{{ cls.name }}</h3>
+                <p class="text-body-md text-on-surface-variant">{{ cls.description|default:"暂无描述" }}</p>
+            </div>
+        </div>
+        <div class="flex items-center justify-between mb-4 pb-4 border-b border-outline-variant/30">
+            <div>
+                <p class="text-label-md text-on-surface-variant mb-1">班级学生</p>
+                <p class="text-headline-md text-on-surface">{{ cls.student_count }} <span class="text-body-md text-on-surface-variant">人</span></p>
+            </div>
+            {% if cls.is_active %}
+            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-primary-fixed text-on-primary-fixed-variant">启用中</span>
+            {% else %}
+            <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">已归档</span>
+            {% endif %}
+        </div>
+        <div class="mt-auto">
+            <a href="{% url 'admin_class_detail' cls.id %}" class="w-full block text-center bg-surface-container-low text-primary border border-primary/30 text-label-md py-2 rounded-lg hover:bg-primary/5 transition-colors">管理班级</a>
+        </div>
+    </article>
+    {% empty %}
+    <div class="col-span-full bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-16 flex flex-col items-center text-center">
+        <div class="w-20 h-20 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant mb-4"><span class="material-symbols-outlined text-[40px]">school</span></div>
+        <h3 class="text-title-lg text-on-surface mb-1">暂无班级数据</h3>
+        <p class="text-body-md text-on-surface-variant max-w-sm">点击上方「新建班级」创建第一个实训班级。</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

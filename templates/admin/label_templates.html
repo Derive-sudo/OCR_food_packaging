@@ -1,0 +1,206 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}标签模板管理 - 管理端{% endblock %}
+{% block header_title %}标签模板管理{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h2 class="text-headline-lg text-on-surface">标签模板管理</h2>
+    <p class="text-body-md text-on-surface-variant mt-1">维护标签模板：定义构建训练数据集时要标注的字段及匹配关键词，用于「识别图片修正」时自动预标注。</p>
+    <div class="mt-3 p-3 rounded-lg bg-surface-container-lowest border border-outline-variant/30 text-body-md text-on-surface-variant" style="line-height:1.7;">
+        <b class="text-on-surface">关键词的作用：</b>OCR 只返回一行行裸文字，不带字段标签，系统靠关键词把文本归到各字段——例如「品名」「食品名称」「产品名」都指向「产品名称」。在「识别图片修正」中，系统按关键词定位字段所在行、去掉前缀，把后面的内容抽出来自动填入对应字段，供人工核对修正后作为训练数据的标注。<br>
+        <b class="text-on-surface">使用定位：</b>标签模板只用于<b>构建训练数据集</b>（「识别图片修正」的结构化字段预标注与修正）。识别端（检测演示）用的是已训练好的模型，模型已经学会输出标签格式的内容，因此识别阶段<b>不再使用标签模板</b>，而是固定按 <b>GB 7718-2011《预包装食品标签通则》</b>做合规判定。<br>
+        <b class="text-on-surface">启用模板：</b>启用某个模板后，「识别图片修正」即按该模板的字段生成结构化预标注；启用标准食品标签（GB 7718）模板即按国标必标字段预标注。
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+    <!-- ==================== 字段管理 ==================== -->
+    <div class="lg:col-span-8 flex flex-col gap-6">
+        <div class="bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant/30">
+            <h3 class="text-title-lg text-on-surface border-b border-outline-variant/30 pb-2 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">fact_check</span>
+                {% if edit_field %}编辑字段{% else %}新增字段{% endif %}
+                {% if target %}<span class="text-label-md text-outline font-normal">（{{ target.name }}）</span>{% endif %}
+            </h3>
+            <form method="post" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_field">
+                <input type="hidden" name="template_id" value="{{ target.id }}">
+                {% if edit_field %}<input type="hidden" name="field_id" value="{{ edit_field.id }}">{% endif %}
+                <div class="md:col-span-3 flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface-variant">字段名称</label>
+                    <input class="bg-[#F1F5F9] border-transparent focus:border-secondary focus:bg-white focus:ring-0 rounded-lg p-2 text-body-md text-on-surface transition-colors" type="text" name="name" value="{{ edit_field.name|default_if_none:'' }}" placeholder="如：储存条件" required>
+                </div>
+                <div class="md:col-span-6 flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface-variant">关键词（逗号分隔）</label>
+                    <input class="bg-[#F1F5F9] border-transparent focus:border-secondary focus:bg-white focus:ring-0 rounded-lg p-2 text-body-md text-on-surface transition-colors" type="text" name="keywords" value="{{ edit_field.keywords|default_if_none:'' }}" placeholder="如：储存条件,贮存条件" required>
+                </div>
+                <div class="md:col-span-3 flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface-variant">排序</label>
+                    <input class="bg-[#F1F5F9] border-transparent focus:border-secondary focus:bg-white focus:ring-0 rounded-lg p-2 text-body-md text-on-surface transition-colors" type="number" name="order" value="{{ edit_field.order|default_if_none:0 }}" min="0">
+                </div>
+                <div class="md:col-span-12 flex gap-2">
+                    <button class="bg-primary text-on-primary rounded-2xl px-5 py-2 text-label-md font-bold hover:bg-surface-tint transition-colors flex items-center gap-2 shadow-sm" type="submit">
+                        <span class="material-symbols-outlined text-[18px]">{% if edit_field %}save{% else %}add{% endif %}</span>
+                        {% if edit_field %}保存修改{% else %}新增字段{% endif %}
+                    </button>
+                    {% if edit_field %}
+                    <a href="{% url 'admin_label_templates' %}?template_id={{ target.id }}" class="bg-surface-container-low text-on-surface-variant border border-outline-variant/40 rounded-2xl px-5 py-2 text-label-md font-bold hover:bg-surface-container-high transition-colors flex items-center gap-2">取消</a>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant/30">
+            <h3 class="text-title-lg text-on-surface border-b border-outline-variant/30 pb-2 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">format_list_numbered</span>
+                字段列表{% if target %}<span class="text-label-md text-outline font-normal">（{{ target.name }}）</span>{% endif %}
+            </h3>
+            {% if fields %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-body-md">
+                    <thead>
+                        <tr class="text-left text-label-md text-on-surface-variant border-b border-outline-variant/30">
+                            <th class="py-2 pr-4 w-20">排序</th>
+                            <th class="py-2 pr-4">字段名称</th>
+                            <th class="py-2 pr-4">关键词</th>
+                            <th class="py-2 text-right w-32">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in fields %}
+                        <tr class="border-b border-outline-variant/20 hover:bg-surface-container/40 transition-colors">
+                            <td class="py-3 pr-4 text-on-surface-variant">{{ f.order }}</td>
+                            <td class="py-3 pr-4 text-on-surface font-medium">{{ f.name }}</td>
+                            <td class="py-3 pr-4 text-on-surface-variant">{{ f.keywords }}</td>
+                            <td class="py-3 text-right whitespace-nowrap">
+                                <a href="{% url 'admin_label_templates' %}?template_id={{ target.id }}&edit_field_id={{ f.id }}" class="inline-flex items-center gap-1 text-secondary hover:underline mr-3">
+                                    <span class="material-symbols-outlined text-[18px]">edit</span>编辑
+                                </a>
+                                <form method="post" class="inline" onsubmit="return confirm('确定删除该字段？');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_field">
+                                    <input type="hidden" name="field_id" value="{{ f.id }}">
+                                    <button type="submit" class="inline-flex items-center gap-1 text-error hover:underline">
+                                        <span class="material-symbols-outlined text-[18px]">delete</span>删除
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="flex flex-col items-center text-center py-12 text-on-surface-variant">
+                <span class="material-symbols-outlined text-[40px] mb-2">inbox</span>
+                <p class="text-body-md">该模板暂无字段，请在上方新增。</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ==================== 模板列表 ==================== -->
+    <div class="lg:col-span-4 flex flex-col gap-6">
+        <div class="bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant/30">
+            <h3 class="text-title-lg text-on-surface border-b border-outline-variant/30 pb-2 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-secondary">create_new_folder</span> 新建模板
+            </h3>
+            <form method="post" class="flex flex-col gap-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="create_template">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface-variant">模板名称</label>
+                    <input class="bg-[#F1F5F9] border-transparent focus:border-secondary focus:bg-white focus:ring-0 rounded-lg p-2 text-body-md text-on-surface transition-colors" type="text" name="name" placeholder="如：饮料标签" required>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface-variant">模板描述</label>
+                    <input class="bg-[#F1F5F9] border-transparent focus:border-secondary focus:bg-white focus:ring-0 rounded-lg p-2 text-body-md text-on-surface transition-colors" type="text" name="description" placeholder="可选">
+                </div>
+                <button class="bg-primary text-on-primary rounded-2xl px-5 py-2 text-label-md font-bold hover:bg-surface-tint transition-colors flex items-center justify-center gap-2 shadow-sm" type="submit">
+                    <span class="material-symbols-outlined text-[18px]">add</span> 新建并启用
+                </button>
+            </form>
+            <div class="border-t border-outline-variant/30 pt-4 mt-4">
+                <form method="post" class="flex flex-col gap-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="import_standard_template">
+                    <button class="bg-surface-container-high text-secondary rounded-2xl px-5 py-2 text-label-md font-bold hover:bg-surface-container transition-colors flex items-center justify-center gap-2" type="submit">
+                        <span class="material-symbols-outlined text-[18px]">auto_awesome</span> 一键导入标准食品标签模板（GB 7718）
+                    </button>
+                    <p class="text-label-md text-on-surface-variant">
+                        含 {{ standard_field_names|length }} 个必标字段：{{ standard_field_names|join:"、" }}
+                    </p>
+                </form>
+            </div>
+        </div>
+
+        <div class="bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant/30">
+            <h3 class="text-title-lg text-on-surface border-b border-outline-variant/30 pb-2 mb-4 flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">category</span> 模板列表
+            </h3>
+            <div class="flex flex-col gap-3">
+                {% for tpl in templates %}
+                <article class="rounded-lg border {% if tpl.is_active %}border-primary/40 bg-primary/5{% else %}border-outline-variant/40{% endif %} p-3">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="font-medium text-on-surface flex-1 truncate">{{ tpl.name }}</span>
+                        {% if tpl.is_standard %}<span class="bg-surface-container-high text-on-surface-variant text-xs font-bold rounded-full px-2 py-0.5">国标</span>
+                        {% else %}<span class="bg-tertiary-container text-on-tertiary-container text-xs font-bold rounded-full px-2 py-0.5">自定义</span>{% endif %}
+                        {% if tpl.is_active %}<span class="bg-primary text-on-primary text-xs font-bold rounded-full px-2 py-0.5">启用中</span>{% endif %}
+                    </div>
+                    {% if tpl.is_active %}
+                    <p class="text-label-md text-primary mb-1 flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[14px]">edit_note</span>已应用于识别图片修正的字段预标注
+                    </p>
+                    {% endif %}
+                    {% if tpl.description %}<p class="text-body-md text-on-surface-variant mb-2">{{ tpl.description }}</p>{% endif %}
+                    <p class="text-label-md text-on-surface-variant mb-3">{{ tpl.field_count }} 个字段</p>
+                    <div class="flex items-center gap-2 text-label-md">
+                        <a href="{% url 'admin_label_templates' %}?template_id={{ tpl.id }}" class="inline-flex items-center gap-1 text-secondary hover:underline">
+                            <span class="material-symbols-outlined text-[16px]">list</span>字段
+                        </a>
+                        <a href="{% url 'admin_label_templates' %}?template_id={{ tpl.id }}&edit_template_id={{ tpl.id }}" class="inline-flex items-center gap-1 text-secondary hover:underline">
+                            <span class="material-symbols-outlined text-[16px]">edit</span>编辑
+                        </a>
+                        {% if not tpl.is_active %}
+                        <form method="post" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="activate_template">
+                            <input type="hidden" name="template_id" value="{{ tpl.id }}">
+                            <button type="submit" class="inline-flex items-center gap-1 text-primary hover:underline">
+                                <span class="material-symbols-outlined text-[16px]">check_circle</span>启用
+                            </button>
+                        </form>
+                        {% endif %}
+                        <form method="post" class="inline ml-auto" onsubmit="return confirm('确定删除该模板及其所有字段？');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_template">
+                            <input type="hidden" name="template_id" value="{{ tpl.id }}">
+                            <button type="submit" class="inline-flex items-center gap-1 text-error hover:underline">
+                                <span class="material-symbols-outlined text-[16px]">delete</span>删除
+                            </button>
+                        </form>
+                    </div>
+                    {% if edit_template and edit_template.id == tpl.id %}
+                    <form method="post" class="mt-3 p-3 rounded-lg bg-surface-container/50 flex flex-col gap-2 border border-outline-variant/30">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="edit_template">
+                        <input type="hidden" name="template_id" value="{{ tpl.id }}">
+                        <input class="bg-white border border-outline-variant/50 focus:border-secondary focus:ring-0 rounded-lg p-2 text-body-md text-on-surface" type="text" name="name" value="{{ tpl.name }}" placeholder="模板名称" required>
+                        <input class="bg-white border border-outline-variant/50 focus:border-secondary focus:ring-0 rounded-lg p-2 text-body-md text-on-surface" type="text" name="description" value="{{ tpl.description }}" placeholder="模板描述（可选）">
+                        <div class="flex gap-2">
+                            <button class="bg-primary text-on-primary rounded-2xl px-4 py-1.5 text-label-md font-bold hover:bg-surface-tint transition-colors" type="submit">保存</button>
+                            <a href="{% url 'admin_label_templates' %}?template_id={{ tpl.id }}" class="bg-surface-container-low text-on-surface-variant rounded-2xl px-4 py-1.5 text-label-md font-bold hover:bg-surface-container-high transition-colors">取消</a>
+                        </div>
+                    </form>
+                    {% endif %}
+                </article>
+                {% empty %}
+                <p class="text-body-md text-on-surface-variant text-center py-6">暂无模板</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

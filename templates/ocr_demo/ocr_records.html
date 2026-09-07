@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}我的实训记录 - 食品外包装文字识别检测系统{% endblock %}
+
+{% block content %}
+<div class="page-heading d-flex justify-content-between align-items-end">
+    <div>
+        <h1><span class="material-symbols-outlined align-middle" style="font-size:1.6rem;">history</span> 我的实训记录</h1>
+        <div class="sub">查看历史检测记录与合规结果</div>
+    </div>
+    <a href="{% url 'ocr_home' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>新建检测</a>
+</div>
+
+{% if records %}
+    <div class="row g-3">
+        {% for record in records %}
+            <div class="col-md-6 col-xl-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-2">
+                        <small class="text-muted">{{ record.created_at|date:"Y-m-d H:i:s" }}</small>
+                        {% if record.is_compliant %}
+                            <span class="badge" style="background:var(--primary-container-soft);color:var(--primary);">合规</span>
+                        {% else %}
+                            <span class="badge" style="background:var(--error-container);color:#93000a;">不合规</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        {% if record.image %}
+                            <div class="text-center mb-3">
+                                <img src="{{ record.image.url }}" alt="识别图片" class="img-fluid rounded" style="max-height:160px; object-fit:contain; background:#f8fafc;">
+                            </div>
+                        {% endif %}
+                        <div class="text-muted small mb-2">
+                            识别结果
+                            {% if record.confidence %}
+                                <span class="badge" style="background:var(--primary-container-soft);color:var(--primary);">置信度 {{ record.confidence|floatformat:2 }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="bg-light p-2 rounded" style="max-height:120px; overflow:auto;">
+                            <pre class="mb-0" style="white-space:pre-wrap; word-wrap:break-word; font-size:.82rem;">{{ record.result_text }}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <span class="material-symbols-outlined" style="font-size:3rem;color:var(--primary-container);">inbox</span>
+            <p class="text-muted mt-2 mb-3">你还没有任何 OCR 检测记录。</p>
+            <a href="{% url 'ocr_home' %}" class="btn btn-primary">去上传图片识别</a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

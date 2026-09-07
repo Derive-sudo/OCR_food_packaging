@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}食品外包装文字识别检测系统{% endblock %}</title>
+    <!-- Bootstrap 5.3.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- 字体：Manrope / Inter / JetBrains Mono / Material Symbols -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00694e;
+            --primary-dark: #00513c;
+            --primary-container: #a4f2d8;
+            --primary-container-soft: #e6f7f0;
+            --on-primary: #ffffff;
+            --secondary: #0058be;
+            --secondary-container: #2170e4;
+            --error: #ba1a1a;
+            --error-container: #ffdad6;
+            --tertiary: #825100;
+            --tertiary-container: #ffddb8;
+            --background: #f7f8fb;
+            --surface: #ffffff;
+            --on-surface: #0b1c30;
+            --on-surface-variant: #3e4944;
+            --outline: #6e7a73;
+            --outline-variant: #bdc9c2;
+            --surface-container: #e5eeff;
+            --surface-container-high: #dce9ff;
+            --surface-container-low: #eff4ff;
+        }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+        .ms-fill { font-variation-settings: 'FILL' 1; }
+
+        body { background: var(--background); color: var(--on-surface); font-family: 'Manrope', 'Inter', -apple-system, 'Microsoft YaHei', 'PingFang SC', sans-serif; }
+
+        /* ============ 通用组件 ============ */
+        .card { border-radius: 12px; border: 1px solid var(--outline-variant); box-shadow: 0 4px 20px rgba(0,0,0,0.03); }
+        .btn { border-radius: 9px; font-weight: 600; }
+        .btn-primary { --bs-btn-bg: var(--primary); --bs-btn-border-color: var(--primary); --bs-btn-hover-bg: var(--primary-dark); --bs-btn-hover-border-color: var(--primary-dark); --bs-btn-active-bg: var(--primary-dark); --bs-btn-active-border-color: var(--primary-dark); }
+        .btn-outline-primary { --bs-btn-color: var(--primary); --bs-btn-border-color: var(--primary); --bs-btn-hover-bg: var(--primary); --bs-btn-hover-border-color: var(--primary); --bs-btn-active-bg: var(--primary); --bs-btn-active-border-color: var(--primary); }
+        .form-control, .form-select { border-radius: 9px; border-color: var(--outline-variant); }
+        .form-control:focus, .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(0,105,78,0.12); }
+        .page-link { color: var(--primary); }
+        .page-item.active .page-link { background: var(--primary); border-color: var(--primary); }
+        .text-primary { color: var(--primary) !important; }
+        .badge.bg-primary { background: var(--primary) !important; }
+
+        /* 统计卡 */
+        .stat-card { border: none; border-radius: 12px; background: var(--surface); }
+        .stat-card .stat-value { font-size: 2rem; font-weight: 800; line-height: 1; color: var(--on-surface); }
+        .stat-card .stat-label { color: var(--on-surface-variant); font-size: .85rem; font-weight: 500; }
+        .stat-icon { width: 46px; height: 46px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: #fff; }
+
+        .page-heading { margin-bottom: 22px; }
+        .page-heading h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
+        .page-heading .sub { color: var(--on-surface-variant); font-size: .9rem; }
+
+        .ms-icon-btn { border: none; background: transparent; color: var(--on-surface-variant); padding: 8px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; transition: all .15s; }
+        .ms-icon-btn:hover { color: var(--primary); background: var(--surface-container); }
+
+        /* ============ 顶部导航栏 ============ */
+        .topbar { background: var(--surface); border-bottom: 1px solid var(--outline-variant); position: sticky; top: 0; z-index: 1030; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; min-height: 64px; }
+        .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+        .brand .brand-logo { width: 40px; height: 40px; border-radius: 10px; background: var(--primary-container); color: var(--primary-dark); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .brand .brand-name { color: var(--primary); font-weight: 800; font-size: 1.12rem; line-height: 1.1; }
+        .brand .brand-sub { color: var(--on-surface-variant); font-size: .68rem; letter-spacing: .5px; }
+        .top-tabs { display: flex; align-items: stretch; height: 64px; gap: 4px; overflow-x: auto; }
+        .top-tab { display: inline-flex; align-items: center; gap: 7px; padding: 0 16px; color: var(--on-surface-variant); text-decoration: none; font-weight: 600; font-size: .95rem; border-bottom: 2px solid transparent; white-space: nowrap; transition: all .15s; }
+        .top-tab:hover { color: var(--primary); }
+        .top-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .top-user { display: flex; align-items: center; gap: 14px; }
+        .user-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .95rem; }
+        .user-meta { text-align: right; }
+        .user-meta .uname { font-weight: 700; font-size: .9rem; color: var(--on-surface); line-height: 1.1; }
+        .user-meta .urole { font-family: 'JetBrains Mono', monospace; font-size: .7rem; color: var(--on-surface-variant); }
+
+        .main-content { padding: 24px 20px; min-height: calc(100vh - 64px); }
+        .main-content .container-xl { max-width: 1280px; }
+
+        /* ============ 登录/注册页 ============ */
+        .auth-body { min-height: 100vh; background: linear-gradient(135deg, #f3f8f6 0%, #faecee 50%, #f0f4fd 100%); }
+        .ambient-shape { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .5; z-index: 0; pointer-events: none; }
+        .glass-card { background: rgba(255,255,255,.9); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,.6); }
+
+        @media (max-width: 992px) {
+            .top-tabs { display: none; }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body class="{% block body_class %}{% endblock %}">
+    <!-- ==================== 登录 / 注册页（无导航） ==================== -->
+    {% if request.resolver_match.url_name == 'login' or request.resolver_match.url_name == 'register' %}
+        <main class="{% block main_class %}auth-body{% endblock %}">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-0" role="alert" style="position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:2000; min-width:320px;">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            {% block auth_content %}{% endblock %}
+        </main>
+
+    <!-- ==================== 正常页面（顶部导航） ==================== -->
+    {% else %}
+        <nav class="topbar">
+            <div class="topbar-inner">
+                <!-- 品牌 -->
+                <a class="brand" href="{% url 'home' %}">
+                    <span class="brand-logo"><span class="material-symbols-outlined ms-fill" style="font-size:24px;">nutrition</span></span>
+                    <span>
+                        <span class="brand-name d-block">食品外包装文字识别检测系统</span>
+                        <span class="brand-sub d-none d-sm-block">FoodPack OCR AI · 实训教学平台</span>
+                    </span>
+                </a>
+
+                <!-- 顶部标签导航 -->
+                <div class="top-tabs">
+                    <a class="top-tab {% if request.resolver_match.url_name == 'ocr_home' %}active{% endif %}" href="{% url 'ocr_home' %}">
+                        <span class="material-symbols-outlined" style="font-size:20px;">play_circle</span> 检测演示
+                    </a>
+                    <a class="top-tab {% if request.resolver_match.url_name == 'ocr_records' %}active{% endif %}" href="{% url 'ocr_records' %}">
+                        <span class="material-symbols-outlined" style="font-size:20px;">history</span> 实训记录
+                    </a>
+                    <a class="top-tab {% if request.resolver_match.url_name == 'samples_manage' %}active{% endif %}" href="{% url 'samples_manage' %}">
+                        <span class="material-symbols-outlined" style="font-size:20px;">folder</span> 样本管理
+                    </a>
+                    {% if user.is_authenticated and user.profile.role == 'student' %}
+                    <a class="top-tab {% if request.resolver_match.url_name == 'student_classes' %}active{% endif %}" href="{% url 'student_classes' %}">
+                        <span class="material-symbols-outlined" style="font-size:20px;">school</span> 我的班级
+                    </a>
+                    {% endif %}
+                    {% if user.is_authenticated and user.profile.role == 'admin' %}
+                    <a class="top-tab {% if request.resolver_match.url_name == 'admin_records' %}active{% endif %}" href="{% url 'admin_records' %}">
+                        <span class="material-symbols-outlined" style="font-size:20px;">list_alt</span> 实训记录管理
+                    </a>
+                    {% endif %}
+                    <a class="top-tab {% if 'finetune' in request.path %}active{% endif %}" href="{% url 'finetune_model' %}">
+                        <span class="material-symbols-outlined" style="font-size:20px;">tune</span> 模型微调
+                    </a>
+                    <a class="top-tab {% if request.resolver_match.url_name == 'image_optimize' %}active{% endif %}" href="{% url 'image_optimize' %}">
+                        <span class="material-symbols-outlined" style="font-size:20px;">auto_fix_high</span> 图像优化
+                    </a>
+                </div>
+
+                <!-- 用户信息 -->
+                <div class="top-user">
+                    {% if user.is_authenticated %}
+                        <button class="ms-icon-btn" title="通知"><span class="material-symbols-outlined">notifications</span></button>
+                        <div class="user-meta d-none d-sm-block">
+                            <div class="uname">{{ user.username }}</div>
+                            <div class="urole">{% if user.profile.role == 'admin' %}管理员 Admin{% else %}实训学生 Trainee{% endif %}</div>
+                        </div>
+                        <span class="user-avatar">{{ user.username|slice:":1"|upper }}</span>
+                        <a class="ms-icon-btn" href="{% url 'logout' %}" title="退出登录"><span class="material-symbols-outlined">logout</span></a>
+                    {% else %}
+                        <a class="btn btn-primary btn-sm" href="{% url 'login' %}">登录</a>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+
+        <!-- 主内容 -->
+        <div class="main-content">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="关闭"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="container-xl">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

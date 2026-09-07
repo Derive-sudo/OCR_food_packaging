@@ -1,0 +1,15 @@
+{% if page_obj.paginator.num_pages > 1 %}
+<div class="flex items-center justify-center gap-2 mt-6">
+    {% if page_obj.has_previous %}
+    <a class="w-9 h-9 rounded-full border border-outline-variant/50 text-on-surface-variant hover:bg-surface-container transition-colors flex items-center justify-center" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">
+        <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+    </a>
+    {% endif %}
+    <span class="px-3 py-1 text-on-surface font-medium text-body-md">第 {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} 页</span>
+    {% if page_obj.has_next %}
+    <a class="w-9 h-9 rounded-full border border-outline-variant/50 text-on-surface-variant hover:bg-surface-container transition-colors flex items-center justify-center" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">
+        <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+    </a>
+    {% endif %}
+</div>
+{% endif %}

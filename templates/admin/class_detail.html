@@ -1,0 +1,78 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ cls.name }} - 班级管理{% endblock %}
+{% block header_title %}班级管理{% endblock %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+    <div>
+        <a href="{% url 'admin_classes' %}" class="text-primary text-label-md hover:underline flex items-center gap-1 mb-2"><span class="material-symbols-outlined text-[16px]">arrow_back</span> 返回班级列表</a>
+        <h2 class="text-headline-lg text-on-surface">{{ cls.name }}</h2>
+        <p class="text-body-md text-on-surface-variant mt-1">{{ cls.description|default:"暂无描述" }}</p>
+    </div>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="toggle_active">
+        <button type="submit" class="flex items-center gap-2 px-4 py-2 rounded-lg text-label-md {% if cls.is_active %}bg-surface-container text-on-surface-variant{% else %}bg-primary text-on-primary{% endif %} hover:opacity-90 transition-colors">
+            <span class="material-symbols-outlined text-[18px]">{% if cls.is_active %}archive{% else %}unarchive{% endif %}</span>
+            {% if cls.is_active %}归档班级{% else %}恢复班级{% endif %}
+        </button>
+    </form>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+    <!-- 添加学生 -->
+    <div class="lg:col-span-4 bg-surface-container-lowest rounded-2xl p-6 shadow-soft border border-outline-variant/30 h-fit">
+        <h3 class="text-title-lg text-on-surface mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary">person_add</span> 添加学生</h3>
+        <form method="post" class="flex flex-col gap-3">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_student">
+            <div class="flex flex-col gap-1.5">
+                <label class="text-label-md text-on-surface-variant">学生用户名</label>
+                <input class="w-full px-3 py-2 bg-surface-container-low border border-outline-variant/50 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary text-body-md text-on-surface outline-none" name="username" placeholder="输入学生账号" required>
+            </div>
+            <button type="submit" class="bg-primary text-on-primary px-4 py-2 rounded-lg text-label-md hover:bg-surface-tint transition-colors">加入班级</button>
+        </form>
+    </div>
+    <!-- 学生名册 -->
+    <div class="lg:col-span-8 bg-surface-container-lowest rounded-2xl shadow-soft border border-outline-variant/30 flex flex-col overflow-hidden">
+        <div class="p-4 border-b border-outline-variant/20 bg-surface-container-lowest/50 flex justify-between items-center">
+            <h3 class="text-title-lg text-on-surface">学生名册（{{ roster|length }} 人）</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-surface-container-low border-b border-outline-variant/30">
+                        <th class="py-3 px-6 text-label-md text-on-surface-variant font-semibold">学生</th>
+                        <th class="py-3 px-6 text-label-md text-on-surface-variant font-semibold">邮箱</th>
+                        <th class="py-3 px-6 text-label-md text-on-surface-variant font-semibold text-right">操作</th>
+                    </tr>
+                </thead>
+                <tbody class="text-body-md text-on-surface divide-y divide-outline-variant/10">
+                    {% for s in roster %}
+                    <tr class="hover:bg-surface-container/50 transition-colors">
+                        <td class="py-3 px-6">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-sm">{{ s.username|slice:":1"|upper }}</div>
+                                <span class="font-medium">{{ s.username }}</span>
+                            </div>
+                        </td>
+                        <td class="py-3 px-6 text-on-surface-variant">{{ s.email|default:"-" }}</td>
+                        <td class="py-3 px-6 text-right">
+                            <form method="post" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="remove_student">
+                                <input type="hidden" name="student_id" value="{{ s.id }}">
+                                <button type="submit" class="text-error hover:underline text-label-md">移出班级</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="py-10 text-center text-on-surface-variant">班级暂无学生，请通过左侧添加。</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

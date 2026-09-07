@@ -1,0 +1,84 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}模型配置 - 管理端{% endblock %}
+{% block header_title %}模型配置{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <div>
+        <h2 class="text-headline-lg text-on-surface">模型配置</h2>
+        <p class="text-body-md text-on-surface-variant mt-1">查看与管理 OCR 模型训练任务。</p>
+    </div>
+    <a href="{% url 'finetune_job_create' %}" class="flex items-center gap-2 bg-primary text-on-primary px-5 py-2 rounded-full hover:bg-surface-tint transition-colors shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">add</span><span class="text-label-md">新建训练任务</span>
+    </a>
+</div>
+
+<!-- 汇总 -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter mt-6 mb-6">
+    <div class="bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant/30 flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center"><span class="material-symbols-outlined text-primary">model_training</span></div>
+        <div>
+            <p class="text-label-md text-on-surface-variant uppercase tracking-wider">训练任务总数</p>
+            <p class="text-headline-md text-on-surface">{{ job_count }}</p>
+        </div>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant/30 flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center"><span class="material-symbols-outlined text-on-primary-fixed-variant">play_circle</span></div>
+        <div>
+            <p class="text-label-md text-on-surface-variant uppercase tracking-wider">运行中</p>
+            <p class="text-headline-md text-on-surface">{{ running_count }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- 任务列表 -->
+<div class="bg-surface-container-lowest rounded-2xl shadow-soft border border-outline-variant/30 flex flex-col overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-surface-container-low border-b border-outline-variant/30">
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">任务名称</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">数据集</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">状态</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">进度</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">参数</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">创建时间</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold text-right">操作</th>
+                </tr>
+            </thead>
+            <tbody class="text-body-md text-on-surface divide-y divide-outline-variant/10">
+                {% for job in jobs %}
+                <tr class="hover:bg-surface-container/50 transition-colors">
+                    <td class="py-4 px-6 font-medium">{{ job.name }}</td>
+                    <td class="py-4 px-6 text-on-surface-variant">{{ job.dataset.name }}</td>
+                    <td class="py-4 px-6">
+                        {% if job.status == 'running' %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-fixed text-on-primary-fixed-variant"><span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span> {{ job.get_status_display }}</span>
+                        {% elif job.status == 'completed' %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary"><span class="material-symbols-outlined text-[14px]">check_circle</span> {{ job.get_status_display }}</span>
+                        {% elif job.status == 'failed' %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-error-container text-on-error-container"><span class="material-symbols-outlined text-[14px]">error</span> {{ job.get_status_display }}</span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">{{ job.get_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-4 px-6">
+                        <div class="flex items-center gap-2">
+                            <div class="w-24 h-2 bg-surface-container rounded-full overflow-hidden"><div class="h-full bg-primary" style="width: {{ job.progress|floatformat:0 }}%;"></div></div>
+                            <span class="text-on-surface-variant text-sm">{{ job.progress|floatformat:0 }}%</span>
+                        </div>
+                    </td>
+                    <td class="py-4 px-6 text-on-surface-variant text-sm">{{ job.epochs }} 轮 / bs {{ job.batch_size }} / lr {{ job.learning_rate }}</td>
+                    <td class="py-4 px-6 text-on-surface-variant text-sm">{{ job.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="py-4 px-6 text-right"><a href="{% url 'finetune_job_detail' job.id %}" class="text-primary text-label-md hover:underline">详情</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="py-10 text-center text-on-surface-variant">暂无训练任务</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "admin/_pagination.html" %}
+</div>
+{% endblock %}

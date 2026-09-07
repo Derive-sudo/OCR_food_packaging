@@ -1,0 +1,61 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}操作日志 - 管理端{% endblock %}
+{% block header_title %}操作日志{% endblock %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+    <div>
+        <h2 class="text-headline-lg text-on-surface">操作日志</h2>
+        <p class="text-body-md text-on-surface-variant mt-1">查看系统操作、配置变更与管理行为。</p>
+    </div>
+    <div class="flex items-end gap-2">
+        <form method="get" class="flex items-end gap-2">
+            <div>
+                <label class="block text-label-md text-on-surface-variant mb-1">操作类型</label>
+                <select class="px-3 py-2 bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary text-body-md text-on-surface outline-none" name="action" onchange="this.form.submit()">
+                    <option value="" {% if not action %}selected{% endif %}>全部类型</option>
+                    {% for value, label in action_choices %}
+                    <option value="{{ value }}" {% if action == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+        <a href="{% url 'admin_logs_export' %}{% if action %}?action={{ action }}{% endif %}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary text-label-md font-bold hover:bg-surface-tint transition-colors">
+            <span class="material-symbols-outlined text-[18px]">download</span> 导出 CSV
+        </a>
+    </div>
+</div>
+
+<div class="bg-surface-container-lowest rounded-2xl shadow-soft border border-outline-variant/30 flex flex-col overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-surface-container-low border-b border-outline-variant/30">
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">时间</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">操作人</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">操作类型</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">详情</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">IP</th>
+                </tr>
+            </thead>
+            <tbody class="text-body-md text-on-surface divide-y divide-outline-variant/10">
+                {% for log in logs %}
+                <tr class="hover:bg-surface-container/50 transition-colors">
+                    <td class="py-3 px-6 whitespace-nowrap text-on-surface-variant text-sm">{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
+                    <td class="py-3 px-6 font-medium">{{ log.user.username|default:"-" }}</td>
+                    <td class="py-3 px-6">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-surface-container text-on-surface-variant">{{ log.get_action_display }}</span>
+                    </td>
+                    <td class="py-3 px-6 text-on-surface-variant truncate max-w-[280px]">{{ log.detail|default:"-" }}</td>
+                    <td class="py-3 px-6 text-on-surface-variant text-sm">{{ log.ip_address|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="py-10 text-center text-on-surface-variant">暂无操作日志</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "admin/_pagination.html" %}
+</div>
+{% endblock %}

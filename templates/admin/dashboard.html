@@ -1,0 +1,147 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}数据总览 - 食品外包装文字识别检测系统{% endblock %}
+{% block header_title %}数据总览{% endblock %}
+
+{% block content %}
+<!-- 页面标题 -->
+<div class="mb-8">
+    <h2 class="text-headline-lg text-on-surface">数据总览</h2>
+    <p class="text-body-md text-on-surface-variant mt-1">实时监控系统整体运行状态与学生的检测准确率。</p>
+</div>
+
+<!-- 顶部统计卡片 -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter mb-6">
+    <div class="bg-surface-container-lowest rounded-xl p-stack-md shadow-soft border border-outline-variant/30 flex flex-col gap-2 hover:shadow-md transition-shadow">
+        <div class="flex justify-between items-center text-on-surface-variant">
+            <span class="text-label-md">总检测次数</span>
+            <span class="material-symbols-outlined text-primary">fact_check</span>
+        </div>
+        <div class="text-display-lg text-on-surface">{{ total_records }}</div>
+        <div class="flex items-center gap-1 text-on-surface-variant text-label-md">
+            <span class="material-symbols-outlined text-[16px]">today</span>
+            <span>今日 {{ today_count }} 次</span>
+        </div>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-stack-md shadow-soft border border-outline-variant/30 flex flex-col gap-2 hover:shadow-md transition-shadow">
+        <div class="flex justify-between items-center text-on-surface-variant">
+            <span class="text-label-md">合规通过率</span>
+            <span class="material-symbols-outlined text-primary">check_circle</span>
+        </div>
+        <div class="text-display-lg text-on-surface">{{ compliance_rate|floatformat:1 }}%</div>
+        <div class="flex items-center gap-1 text-on-surface-variant text-label-md">
+            <span>{{ compliant_count }} / {{ total_records }} 条合规</span>
+        </div>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-stack-md shadow-soft border border-outline-variant/30 flex flex-col gap-2 hover:shadow-md transition-shadow">
+        <div class="flex justify-between items-center text-on-surface-variant">
+            <span class="text-label-md">平均置信度</span>
+            <span class="material-symbols-outlined text-primary">analytics</span>
+        </div>
+        <div class="text-display-lg text-on-surface">{{ avg_confidence|floatformat:1 }}%</div>
+        <div class="flex items-center gap-1 text-on-surface-variant text-label-md">
+            <span class="material-symbols-outlined text-[16px]">group</span>
+            <span>{{ student_count }} 名实训生</span>
+        </div>
+    </div>
+</div>
+
+<!-- 中部：趋势图 + 系统状态 -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter mb-6">
+    <div class="lg:col-span-2 bg-surface-container-lowest rounded-xl p-stack-md shadow-soft border border-outline-variant/30 flex flex-col">
+        <div class="flex justify-between items-center mb-stack-md">
+            <h3 class="text-title-lg text-on-surface">检测趋势</h3>
+            <span class="text-label-md text-on-surface-variant">近 7 天</span>
+        </div>
+        <div class="h-56 bg-surface-container-low rounded-lg border border-outline-variant/50 flex items-end justify-between gap-2 px-4 pt-4 pb-2">
+            {% for item in trend %}
+            <div class="flex flex-col items-center gap-1 flex-1 h-full justify-end">
+                <span class="text-[10px] text-on-surface-variant">{{ item.count }}</span>
+                <div class="w-full bg-primary-container rounded-t-sm" style="height: {% widthratio item.count max_count 100 %}%; min-height: 4px;"></div>
+                <span class="text-[10px] text-on-surface-variant">{{ item.date }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-stack-md shadow-soft border border-outline-variant/30 flex flex-col">
+        <h3 class="text-title-lg text-on-surface mb-stack-md">系统状态</h3>
+        <ul class="flex flex-col gap-stack-sm flex-1">
+            <li class="flex justify-between items-center p-3 bg-surface-container-low rounded-lg">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined text-[20px]">smart_toy</span>
+                    </div>
+                    <span class="text-body-md text-on-surface">AI 引擎</span>
+                </div>
+                <span class="px-2 py-1 bg-primary-fixed text-on-primary-fixed text-label-md rounded-md flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span> 运行中
+                </span>
+            </li>
+            <li class="flex justify-between items-center p-3 bg-surface-container-low rounded-lg">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary">
+                        <span class="material-symbols-outlined text-[20px]">database</span>
+                    </div>
+                    <span class="text-body-md text-on-surface">数据库</span>
+                </div>
+                <span class="px-2 py-1 bg-surface-container-highest text-on-surface text-label-md rounded-md">正常</span>
+            </li>
+            <li class="flex justify-between items-center p-3 bg-surface-container-low rounded-lg">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-tertiary-container/20 flex items-center justify-center text-tertiary">
+                        <span class="material-symbols-outlined text-[20px]">groups</span>
+                    </div>
+                    <span class="text-body-md text-on-surface">用户总数</span>
+                </div>
+                <span class="text-body-md text-on-surface font-semibold">{{ total_users }}</span>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<!-- 最近检测记录 -->
+<div class="bg-surface-container-lowest rounded-xl p-stack-md shadow-soft border border-outline-variant/30 flex flex-col overflow-hidden">
+    <div class="flex justify-between items-center mb-stack-md">
+        <h3 class="text-title-lg text-on-surface">最近检测记录</h3>
+        <a href="{% url 'admin_records' %}" class="text-primary text-label-md hover:underline flex items-center gap-1">
+            查看全部 <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="border-b border-outline-variant/30 bg-surface-container-low/50">
+                    <th class="p-3 text-label-md text-on-surface-variant font-semibold">学生</th>
+                    <th class="p-3 text-label-md text-on-surface-variant font-semibold">识别结果</th>
+                    <th class="p-3 text-label-md text-on-surface-variant font-semibold">判定</th>
+                    <th class="p-3 text-label-md text-on-surface-variant font-semibold">置信度</th>
+                    <th class="p-3 text-label-md text-on-surface-variant font-semibold">时间</th>
+                </tr>
+            </thead>
+            <tbody class="text-body-md">
+                {% for record in recent_records %}
+                <tr class="border-b border-outline-variant/10 hover:bg-surface-container-low/30 transition-colors">
+                    <td class="p-3 text-on-surface">{{ record.user.username }}</td>
+                    <td class="p-3 text-on-surface-variant truncate max-w-[220px]">{{ record.result_text|truncatechars:28 }}</td>
+                    <td class="p-3">
+                        {% if record.is_compliant %}
+                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-primary-fixed/30 text-on-primary-fixed-variant rounded-md text-label-md">
+                            <span class="material-symbols-outlined text-[14px]">check</span> 合规
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 px-2 py-1 bg-error-container text-on-error-container rounded-md text-label-md">
+                            <span class="material-symbols-outlined text-[14px]">close</span> 不合规
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="p-3 text-on-surface">{% if record.confidence %}{{ record.confidence|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td class="p-3 text-on-surface-variant text-sm">{{ record.created_at|date:"m-d H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="p-6 text-center text-on-surface-variant">暂无检测记录</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

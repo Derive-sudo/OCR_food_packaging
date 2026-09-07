@@ -1,0 +1,109 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}实训记录 - 管理端{% endblock %}
+{% block header_title %}实训记录{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <div>
+        <h2 class="text-headline-lg text-on-surface">实训记录</h2>
+        <p class="text-body-md text-on-surface-variant mt-1">全局视图：监控所有学生的 OCR 识别与合规检测记录。</p>
+    </div>
+    <a href="{% url 'admin_export_records' %}{% if querystring %}?{{ querystring }}{% endif %}" class="flex items-center gap-2 bg-primary text-on-primary px-4 py-2 rounded-full hover:bg-surface-tint transition-colors shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">download</span><span class="text-label-md">导出 CSV</span>
+    </a>
+</div>
+
+<!-- 统计卡片 -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter mt-6 mb-6">
+    <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-soft border border-outline-variant/30 flex flex-col gap-2">
+        <span class="text-label-md text-on-surface-variant uppercase tracking-wider">今日检测</span>
+        <span class="text-display-lg text-on-surface">{{ today_count }}</span>
+    </div>
+    <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-soft border border-outline-variant/30 flex flex-col gap-2">
+        <span class="text-label-md text-on-surface-variant uppercase tracking-wider">平均置信度</span>
+        <span class="text-display-lg text-on-surface">{{ avg_confidence|floatformat:1 }}%</span>
+    </div>
+    <div class="bg-surface-container-lowest p-6 rounded-2xl shadow-soft border border-outline-variant/30 flex flex-col gap-2">
+        <span class="text-label-md text-on-surface-variant uppercase tracking-wider">合规通过率</span>
+        <span class="text-display-lg text-on-surface">{{ compliance_rate|floatformat:1 }}%</span>
+        <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden"><div class="h-full bg-primary" style="width: {{ compliance_rate|floatformat:0 }}%;"></div></div>
+    </div>
+</div>
+
+<!-- 筛选 -->
+<section class="bg-surface-container-lowest p-6 rounded-2xl shadow-soft border border-outline-variant/30 mb-6">
+    <form method="get" class="flex flex-wrap gap-4 items-end w-full">
+        <div class="flex-1 min-w-[180px]">
+            <label class="block text-label-md text-on-surface-variant mb-1">关键词</label>
+            <input class="w-full px-3 py-2 bg-surface-container-low border border-outline-variant/50 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary text-body-md text-on-surface outline-none" name="q" value="{{ q }}" placeholder="学生姓名 / 识别结果">
+        </div>
+        <div class="w-40">
+            <label class="block text-label-md text-on-surface-variant mb-1">合规状态</label>
+            <select class="w-full px-3 py-2 bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary text-body-md text-on-surface outline-none" name="compliance">
+                <option value="" {% if not compliance %}selected{% endif %}>全部</option>
+                <option value="compliant" {% if compliance == "compliant" %}selected{% endif %}>合规</option>
+                <option value="non_compliant" {% if compliance == "non_compliant" %}selected{% endif %}>不合规</option>
+            </select>
+        </div>
+        <div class="flex items-end gap-2">
+            <div>
+                <label class="block text-label-md text-on-surface-variant mb-1">开始日期</label>
+                <input class="px-3 py-2 bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary text-body-md text-on-surface outline-none" type="date" name="start_date" value="{{ start_date }}">
+            </div>
+            <div>
+                <label class="block text-label-md text-on-surface-variant mb-1">结束日期</label>
+                <input class="px-3 py-2 bg-surface-container-low border border-outline-variant/50 rounded-lg focus:ring-2 focus:ring-primary text-body-md text-on-surface outline-none" type="date" name="end_date" value="{{ end_date }}">
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="bg-primary text-on-primary px-6 py-2 rounded-lg text-label-md hover:bg-surface-tint transition-colors h-[40px] flex items-center justify-center">筛选</button>
+            <a href="{% url 'admin_records' %}" class="bg-transparent border border-outline-variant text-on-surface-variant px-4 py-2 rounded-lg text-label-md hover:bg-surface-container-low transition-colors h-[40px] flex items-center justify-center">重置</a>
+        </div>
+    </form>
+</section>
+
+<!-- 表格 -->
+<div class="bg-surface-container-lowest rounded-2xl shadow-soft border border-outline-variant/30 flex flex-col overflow-hidden">
+    <div class="p-4 border-b border-outline-variant/20 bg-surface-container-lowest/50 flex justify-between items-center">
+        <h3 class="text-title-lg text-on-surface">识别记录（共 {{ page_obj.paginator.count }} 条）</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-surface-container-low border-b border-outline-variant/30">
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">时间</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">学生</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">识别结果</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">判定</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold">置信度</th>
+                    <th class="py-4 px-6 text-label-md text-on-surface-variant font-semibold text-right">操作</th>
+                </tr>
+            </thead>
+            <tbody class="text-body-md text-on-surface divide-y divide-outline-variant/10">
+                {% for record in records %}
+                <tr class="hover:bg-surface-container/50 transition-colors">
+                    <td class="py-3 px-6 whitespace-nowrap text-on-surface-variant text-sm">{{ record.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="py-3 px-6 font-medium">{{ record.user.username }}</td>
+                    <td class="py-3 px-6 text-on-surface-variant truncate max-w-[240px]">{{ record.result_text|truncatechars:32 }}</td>
+                    <td class="py-3 px-6">
+                        {% if record.is_compliant %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-fixed text-on-primary-fixed-variant border border-primary-fixed-dim/30"><span class="material-symbols-outlined text-[14px]">check_circle</span> 合规</span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-error-container text-on-error-container border border-error/20"><span class="material-symbols-outlined text-[14px]">error</span> 不合规</span>
+                        {% endif %}
+                    </td>
+                    <td class="py-3 px-6">{% if record.confidence %}{{ record.confidence|floatformat:2 }}{% else %}<span class="text-on-surface-variant">-</span>{% endif %}</td>
+                    <td class="py-3 px-6 text-right">
+                        {% if record.image %}<a href="{{ record.image.url }}" target="_blank" class="p-1.5 rounded-full text-on-surface-variant hover:bg-surface-container hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">visibility</span></a>{% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="py-10 text-center text-on-surface-variant">暂无符合条件的记录</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "admin/_pagination.html" %}
+</div>
+{% endblock %}

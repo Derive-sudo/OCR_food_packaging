@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}新建训练任务{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <h1 class="mb-1">⚙️ 新建训练任务</h1>
+    <p class="text-muted mb-0">选择数据集并设置训练超参数。</p>
+</div>
+
+<div class="card shadow-sm" style="max-width: 640px;">
+    <div class="card-body">
+        {% if datasets %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">任务名称</label>
+                <input type="text" name="name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">训练数据集</label>
+                <select name="dataset_id" class="form-select" required>
+                    {% for ds in datasets %}
+                    <option value="{{ ds.id }}">{{ ds.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">轮数 Epochs</label>
+                    <input type="number" name="epochs" class="form-control" value="10" min="1">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">批次 Batch Size</label>
+                    <input type="number" name="batch_size" class="form-control" value="16" min="1">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">学习率</label>
+                    <input type="number" step="0.0001" name="learning_rate" class="form-control" value="0.001">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">基础模型</label>
+                    <select name="base_model" class="form-select">
+                        <option value="official">官方 PP-OCRv4 rec 预训练</option>
+                        <option value="local">本地最新微调 checkpoint</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">优化器</label>
+                    <select name="optimizer" class="form-select">
+                        <option value="adam">Adam</option>
+                        <option value="adamw">AdamW</option>
+                        <option value="momentum">Momentum (SGD)</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">图片宽度</label>
+                    <select name="image_size" class="form-select">
+                        <option value="320" selected>320</option>
+                        <option value="640">640</option>
+                        <option value="1024">1024</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3 d-flex gap-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="freeze_backbone" id="freezeBackbone">
+                    <label class="form-check-label" for="freezeBackbone">冻结 Backbone</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="cosine_lr" id="cosineLR" checked>
+                    <label class="form-check-label" for="cosineLR">Cosine 学习率</label>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">创建</button>
+                <a href="{% url 'finetune_jobs' %}" class="btn btn-outline-secondary">返回</a>
+            </div>
+        </form>
+        {% else %}
+        <div class="alert alert-info mb-0">
+            请先<a href="{% url 'finetune_datasets' %}" class="alert-link">创建数据集并上传图片</a>，再创建训练任务。
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

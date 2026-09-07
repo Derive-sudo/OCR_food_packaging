@@ -1,0 +1,71 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}标签数据管理 - 管理端{% endblock %}
+{% block header_title %}标签数据管理{% endblock %}
+
+{% block content %}
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+    <div>
+        <h2 class="text-headline-lg text-on-surface">标签数据管理</h2>
+        <p class="text-body-md text-on-surface-variant mt-1">管理食品包装数据集与标注样本。</p>
+    </div>
+    <a href="{% url 'finetune_datasets' %}" class="flex items-center gap-unit px-4 py-2 bg-primary text-on-primary rounded-xl hover:bg-surface-tint transition-colors text-label-md shadow-sm">
+        <span class="material-symbols-outlined text-[18px]">add</span> 管理数据集
+    </a>
+</div>
+
+<!-- 汇总 -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter mb-6">
+    <div class="bg-surface-container-lowest rounded-xl p-stack-md shadow-soft border border-outline-variant/30 flex items-center gap-stack-md">
+        <div class="w-12 h-12 rounded-full bg-primary-container/20 flex items-center justify-center text-primary">
+            <span class="material-symbols-outlined">category</span>
+        </div>
+        <div>
+            <p class="text-label-md text-on-surface-variant uppercase tracking-wider">数据集总数</p>
+            <p class="text-headline-md text-on-surface">{{ dataset_count }}</p>
+        </div>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-stack-md shadow-soft border border-outline-variant/30 flex items-center gap-stack-md">
+        <div class="w-12 h-12 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary">
+            <span class="material-symbols-outlined">image</span>
+        </div>
+        <div>
+            <p class="text-label-md text-on-surface-variant uppercase tracking-wider">样本图片</p>
+            <p class="text-headline-md text-on-surface">{{ image_count }}</p>
+        </div>
+    </div>
+</div>
+
+<!-- 数据集列表 -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-gutter">
+    {% for ds in datasets %}
+    <article class="bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant/40 hover:border-primary/40 hover:shadow-md transition-all duration-300 flex flex-col">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center text-on-surface-variant">
+                <span class="material-symbols-outlined text-[28px]">{% if ds.dataset_type == 'food_label' %}local_drink{% elif ds.dataset_type == 'custom' %}inventory_2{% else %}description{% endif %}</span>
+            </div>
+            <div>
+                <h3 class="text-title-lg text-on-surface">{{ ds.name }}</h3>
+                <p class="text-body-md text-outline">{{ ds.get_dataset_type_display }}</p>
+            </div>
+        </div>
+        <div class="mb-4 pb-4 border-b border-outline-variant/30 flex justify-between items-end">
+            <div>
+                <p class="text-label-md text-on-surface-variant mb-1">样本图片</p>
+                <p class="text-headline-md text-on-surface">{{ ds.image_count }}</p>
+            </div>
+            <span class="text-body-md text-on-surface-variant">{{ ds.created_by.username }} · {{ ds.created_at|date:"Y-m-d" }}</span>
+        </div>
+        <div class="mt-auto">
+            <a href="{% url 'finetune_dataset_detail' ds.id %}" class="w-full block text-center bg-surface-container-low text-primary border border-primary/30 text-label-md py-2 rounded-lg hover:bg-primary/5 transition-colors">查看详情</a>
+        </div>
+    </article>
+    {% empty %}
+    <div class="col-span-full bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-16 flex flex-col items-center text-center">
+        <span class="material-symbols-outlined text-[40px] text-on-surface-variant mb-2">inbox</span>
+        <p class="text-body-md text-on-surface-variant">暂无数据集</p>
+    </div>
+    {% endfor %}
+</div>
+{% include "admin/_pagination.html" %}
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}系统设置 - 管理端{% endblock %}
+{% block header_title %}系统设置{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h2 class="text-headline-lg text-on-surface">系统设置</h2>
+    <p class="text-body-md text-on-surface-variant mt-1">管理训练环境的全局配置，保存后即时生效。</p>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+        <div class="lg:col-span-8 bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant/30 flex flex-col gap-6">
+            <div>
+                <h3 class="text-title-lg text-on-surface border-b border-outline-variant/30 pb-2 mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary">tune</span> 常规设置</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-label-md text-on-surface-variant">系统名称</label>
+                        <input class="bg-[#F1F5F9] border-transparent focus:border-secondary focus:bg-white focus:ring-0 rounded-lg p-2 text-body-md text-on-surface transition-colors" type="text" name="system_name" value="{{ settings_obj.system_name }}" required>
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-label-md text-on-surface-variant">管理员邮箱</label>
+                        <input class="bg-[#F1F5F9] border-transparent focus:border-secondary focus:bg-white focus:ring-0 rounded-lg p-2 text-body-md text-on-surface transition-colors" type="email" name="admin_email" value="{{ settings_obj.admin_email }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="lg:col-span-4 bg-surface-container-lowest rounded-xl p-6 shadow-soft border border-outline-variant/30">
+            <h3 class="text-title-lg text-on-surface border-b border-outline-variant/30 pb-2 mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-secondary">model_training</span> AI 默认配置</h3>
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface-variant">默认训练轮数</label>
+                    <input class="bg-[#F1F5F9] border-transparent focus:border-secondary focus:bg-white focus:ring-0 rounded-lg p-2 text-body-md text-on-surface transition-colors" type="number" name="default_epochs" value="{{ settings_obj.default_epochs }}" min="1" max="500">
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-label-md text-on-surface-variant">合规置信度阈值(%)</label>
+                    <input class="bg-[#F1F5F9] border-transparent focus:border-secondary focus:bg-white focus:ring-0 rounded-lg p-2 text-body-md text-on-surface transition-colors" type="number" name="compliance_threshold" value="{{ settings_obj.compliance_threshold }}" min="0" max="100">
+                </div>
+            </div>
+        </div>
+        <div class="lg:col-span-12 flex justify-end">
+            <button class="bg-primary text-on-primary rounded-2xl px-6 py-2.5 text-label-md font-bold hover:bg-surface-tint transition-colors flex items-center gap-2 shadow-sm" type="submit"><span class="material-symbols-outlined text-[18px]">save</span> 保存设置</button>
+        </div>
+    </div>
+</form>
+{% endblock %}

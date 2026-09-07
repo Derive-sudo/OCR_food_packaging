@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}图片标注 - {{ dataset.name }}{% endblock %}
+
+{% block content %}
+<div class="page-heading d-flex justify-content-between align-items-end">
+    <div>
+        <h1><span class="material-symbols-outlined align-middle" style="font-size:1.6rem;">edit_note</span> 图片标注</h1>
+        <div class="sub">{{ dataset.name }} · 逐行修正识别文字</div>
+    </div>
+    <a href="{% url 'finetune_dataset_detail' dataset.id %}" class="btn btn-outline-secondary">返回</a>
+</div>
+
+{% if lines %}
+<form method="post">
+    {% csrf_token %}
+    <div class="row g-3">
+        <!-- 左：图片 + 叠加框 -->
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-body">
+                    <div class="position-relative" style="line-height:0;">
+                        <img src="{{ image.image.url }}" alt="标注图片" style="width:100%;border-radius:8px;">
+                        {% if width and height %}
+                        <svg class="position-absolute top-0 start-0 w-100 h-100" viewBox="0 0 {{ width }} {{ height }}"
+                             preserveAspectRatio="none" style="pointer-events:none;">
+                            {% for line in lines %}
+                            <polygon points="{% for p in line.points %}{{ p.0 }},{{ p.1 }} {% endfor %}"
+                                     fill="rgba(0,105,78,0.08)" stroke="#00694e" stroke-width="1.5"/>
+                            {% endfor %}
+                        </svg>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右：结构化字段修正 + 逐行改字 -->
+        <div class="col-lg-5">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h5 class="mb-0"><span class="material-symbols-outlined align-middle text-primary" style="font-size:20px;">fact_check</span> 结构化字段修正</h5>
+                        <div class="text-muted small">自动预标注抽取以下必标字段，请核对并补填/修正后再保存。</div>
+                    </div>
+                    {% for name, value in structured_fields.items %}
+                    <div class="mb-2">
+                        <label class="form-label mb-1 small text-secondary">
+                            {{ name }}
+                            {% if not value %}<span class="text-danger">（未识别，请补填）</span>{% endif %}
+                        </label>
+                        {% if "配料" in name %}
+                        <textarea name="field_{{ name }}" class="form-control" rows="2" placeholder="如：小麦粉、白砂糖、植物油…">{{ value }}</textarea>
+                        {% else %}
+                        <input type="text" name="field_{{ name }}" class="form-control" value="{{ value }}" placeholder="如：见包装喷码">
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-3 text-muted small">识别到 <b>{{ lines|length }}</b> 行文字，逐行修正后保存（留空该行将被丢弃）。</div>
+                    {% for line in lines %}
+                    <div class="mb-3">
+                        <label class="form-label mb-1 small text-secondary">第 {{ forloop.counter }} 行 · 置信度 {{ line.confidence }}</label>
+                        <input type="text" name="text_{{ forloop.counter0 }}" class="form-control" value="{{ line.text }}">
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <span class="material-symbols-outlined" style="font-size:18px;">save</span> 保存修正
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <span class="material-symbols-outlined d-block" style="font-size:3rem;color:var(--primary-container);">text_fields</span>
+        <p class="text-muted mt-2 mb-3">该图片暂未识别到文字，无法逐行修正。</p>
+        <a href="{% url 'finetune_dataset_detail' dataset.id %}" class="btn btn-primary">返回数据集</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

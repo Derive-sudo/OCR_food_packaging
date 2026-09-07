@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}注册 - 食品外包装文字识别检测系统{% endblock %}
+
+{% block body_class %}auth-body{% endblock %}
+
+{% block extra_head %}
+<style>
+    .auth-body { min-height: 100vh; background: linear-gradient(135deg, #f3f8f6 0%, #faecee 50%, #f0f4fd 100%); position: relative; overflow: hidden; }
+    .reg-wrap { position: relative; z-index: 10; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+    .reg-card { width: 100%; max-width: 460px; border-radius: 16px; padding: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.06); }
+    .logo-circle { width: 52px; height: 52px; border-radius: 50%; background: rgba(0,105,78,0.12); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }
+    .reg-title { font-weight: 700; font-size: 1.3rem; color: var(--on-surface); }
+    .reg-sub { color: var(--on-surface-variant); font-size: .86rem; }
+
+    .segmented { display: flex; background: rgba(211,228,254,0.5); border-radius: 10px; padding: 4px; margin: 22px 0 18px; }
+    .seg-btn { flex: 1; padding: 9px; border: none; background: transparent; border-radius: 8px; font-size: .85rem; font-weight: 600; color: var(--on-surface-variant); transition: all .15s; }
+    .seg-btn.active { background: #fff; color: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+    .field { position: relative; margin-bottom: 14px; }
+    .field label { display: block; font-size: .78rem; font-weight: 600; color: var(--on-surface-variant); margin-bottom: 6px; }
+    .field .f-ico { position: absolute; left: 13px; top: 39px; transform: translateY(-50%); color: var(--outline); font-size: 20px; }
+    .field input { width: 100%; height: 44px; padding-left: 42px; padding-right: 40px; border: 1px solid var(--outline-variant); border-radius: 10px; background: #fff; font-size: .9rem; transition: .15s; }
+    .field input:focus { border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(0,88,190,0.12); outline: none; }
+    .field .err { color: var(--error); font-size: .75rem; margin-top: 4px; }
+    .field .hint { color: var(--outline); font-size: .7rem; margin-top: 4px; }
+
+    .btn-reg { width: 100%; margin-top: 18px; padding: 13px; border: none; border-radius: 10px; background: var(--primary); color: #fff; font-weight: 600; font-size: .92rem; }
+    .btn-reg:hover { background: var(--primary-dark); }
+    .login-link { text-align: center; margin-top: 18px; font-size: .86rem; color: var(--on-surface-variant); }
+    .login-link a { color: var(--secondary); font-weight: 600; text-decoration: none; }
+    .reg-footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(189,201,194,0.4); text-align: center; font-size: .72rem; color: var(--outline); }
+</style>
+{% endblock %}
+
+{% block auth_content %}
+<div class="ambient-shape" style="width:120px;height:120px;background:rgba(0,105,78,.2);top:-5%;left:8%;"></div>
+<div class="ambient-shape" style="width:180px;height:180px;background:rgba(0,88,190,.15);bottom:15%;right:6%;"></div>
+<div class="ambient-shape" style="width:90px;height:90px;background:rgba(130,81,0,.1);top:40%;left:60%;"></div>
+
+<div class="reg-wrap">
+    <div class="glass-card reg-card">
+        <div class="d-flex flex-column align-items-center text-center mb-3">
+            <div class="logo-circle mb-2"><span class="material-symbols-outlined ms-fill" style="font-size:30px;">person_add</span></div>
+            <h1 class="reg-title mb-1">创建账号</h1>
+            <p class="reg-sub">加入高职 AI 实训平台，开始食品外包装识别</p>
+        </div>
+
+        <form method="post" action="{% url 'register' %}">
+            {% csrf_token %}
+
+            <div class="segmented">
+                <button type="button" class="seg-btn active" id="roleStudent">实训生</button>
+                <button type="button" class="seg-btn" id="roleAdmin">管理员</button>
+            </div>
+            <input type="hidden" name="role" id="role" value="student">
+
+            <div class="field">
+                <label for="id_username">账号</label>
+                <span class="f-ico"><span class="material-symbols-outlined">badge</span></span>
+                <input type="text" name="username" id="id_username" placeholder="请输入账号" value="{{ form.username.value|default_if_none:'' }}" autocomplete="username" required>
+                {% if form.username.errors %}<div class="err">{{ form.username.errors|striptags }}</div>{% endif %}
+            </div>
+
+            <div class="field">
+                <label for="id_password1">密码</label>
+                <span class="f-ico"><span class="material-symbols-outlined">lock</span></span>
+                <input type="password" name="password1" id="id_password1" placeholder="设置安全密码" autocomplete="new-password" required>
+                {% if form.password1.errors %}<div class="err">{{ form.password1.errors|striptags }}</div>{% endif %}
+            </div>
+
+            <div class="field">
+                <label for="id_password2">确认密码</label>
+                <span class="f-ico"><span class="material-symbols-outlined">lock_reset</span></span>
+                <input type="password" name="password2" id="id_password2" placeholder="再次输入密码" autocomplete="new-password" required>
+                {% if form.password2.errors %}<div class="err">{{ form.password2.errors|striptags }}</div>{% endif %}
+            </div>
+
+            <button type="submit" class="btn-reg">注册 <span class="material-symbols-outlined" style="font-size:18px;">arrow_forward</span></button>
+        </form>
+
+        <div class="login-link">已有账号？<a href="{% url 'login' %}">直接登录</a></div>
+        <div class="reg-footer">© 2026 AI 食品外包装检测实训中心 · 版权所有</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const studentBtn = document.getElementById("roleStudent");
+        const adminBtn = document.getElementById("roleAdmin");
+        const roleInput = document.getElementById("role");
+        function setRole(role, a, b) {
+            a.classList.add("active"); b.classList.remove("active"); roleInput.value = role;
+        }
+        studentBtn.addEventListener("click", () => setRole("student", studentBtn, adminBtn));
+        adminBtn.addEventListener("click", () => setRole("admin", adminBtn, studentBtn));
+    });
+</script>
+{% endblock %}

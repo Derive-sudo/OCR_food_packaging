@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}训练任务{% endblock %}
+{% block content %}
+<div class="mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="mb-1">⚙️ 训练任务</h1>
+        <p class="text-muted mb-0">创建并管理模型微调训练任务。</p>
+    </div>
+    <a href="{% url 'finetune_job_create' %}" class="btn btn-primary">+ 新建任务</a>
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label mb-1">状态</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">全部</option>
+                    <option value="pending" {% if status == "pending" %}selected{% endif %}>等待中</option>
+                    <option value="running" {% if status == "running" %}selected{% endif %}>运行中</option>
+                    <option value="completed" {% if status == "completed" %}selected{% endif %}>已完成</option>
+                    <option value="failed" {% if status == "failed" %}selected{% endif %}>失败</option>
+                    <option value="stopped" {% if status == "stopped" %}selected{% endif %}>已停止</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">筛选</button>
+                <a href="{% url 'finetune_jobs' %}" class="btn btn-outline-secondary btn-sm">清空</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr><th>名称</th><th>数据集</th><th>状态</th><th>进度</th><th>轮数</th><th>创建时间</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+                {% for job in jobs %}
+                <tr>
+                    <td class="fw-semibold">{{ job.name }}</td>
+                    <td>{{ job.dataset.name }}</td>
+                    <td><span class="badge bg-secondary">{{ job.get_status_display }}</span></td>
+                    <td>{{ job.progress|floatformat:0 }}%</td>
+                    <td>{{ job.epochs }}</td>
+                    <td>{{ job.created_at|date:"Y-m-d H:i" }}</td>
+                    <td><a href="{% url 'finetune_job_detail' job.id %}" class="btn btn-sm btn-outline-primary">详情</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">暂无训练任务</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% include "includes/pagination.html" %}
+{% endblock %}
