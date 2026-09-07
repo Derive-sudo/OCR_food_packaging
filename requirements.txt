@@ -1,0 +1,20 @@
+# 食品包装 OCR 识别系统 依赖清单
+# 建议 Python 3.10 - 3.12（paddlepaddle 对 Python 版本有要求）
+
+# Web 框架
+Django>=4.2,<5.0
+
+# OCR 推理（paddleocr 包含 ppocr 训练组件）
+paddlepaddle>=2.5
+paddleocr>=2.7
+
+# 图像处理
+opencv-python
+Pillow
+numpy
+
+# MySQL 数据库驱动（food_ocr_system/__init__.py 中通过 pymysql.install_as_MySQLdb() 使用）
+pymysql
+
+# 配置解析（训练 yaml）
+PyYAML

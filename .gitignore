@@ -1,45 +1,61 @@
-# Byte-compiled / optimized / DLL files
+# ===== Python 缓存 =====
 __pycache__/
-.ipynb_checkpoints/
 *.py[cod]
 *$py.class
+.ipynb_checkpoints/
 
-# C extensions
-*.so
+# ===== 虚拟环境 =====
+venv/
+env/
+.venv/
 
-inference/
-inference_results/
-output/
-train_data/
-log/
-*.DS_Store
-*.vs
-*.user
-*~
-*.vscode
-*.idea
+# ===== 环境变量与本地脚本（含数据库密码等敏感信息，禁止提交）=====
+.env
+.env.*
+run_dev.bat
+start_*.bat
 
-*.log
-.clang-format
-.clang_format.hook
-
-build/
-dist/
-paddleocr.egg-info/
-/deploy/android_demo/app/OpenCV/
-/deploy/android_demo/app/PaddleLite/
-/deploy/android_demo/app/.cxx/
-/deploy/android_demo/app/cache/
-test_tipc/web/models/
-test_tipc/web/node_modules/
-
-# sqlite数据库
+# ===== 数据库 =====
 db.sqlite3
+*.sqlite3
 
-# 数据集文件夹
+# ===== 本地数据集与媒体 =====
 real_data/
 synth_data/
 synth_data_1k/
 synth_small/
 media/
+
+# ===== 训练产物与输出 =====
+output/
+inference_results/
+log/
+*.log
+model_train/data/
+model_train/runs/
+
+# ===== 模型权重大文件（避免上传巨型模型文件）=====
+*.pdparams
+*.pdopt
+*.pdscalar
+model_train/pretrain_models/
+
+# ===== 第三方源码（PaddleOCR 应通过 pip 安装，不入库）=====
+model_train/PaddleOCR/
+
+# ===== 系统与编辑器 =====
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.vs
+*.user
+*~
+
+# ===== 编译产物 =====
+build/
+dist/
+*.egg-info/
+
+# ===== 文档（部署手册等，另存本地）=====
 *.docx

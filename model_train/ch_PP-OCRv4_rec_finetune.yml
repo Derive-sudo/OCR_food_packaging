@@ -1,0 +1,150 @@
+Architecture:
+  Backbone:
+    name: PPLCNetV3
+    scale: 0.95
+  Head:
+    head_list:
+    - CTCHead:
+        Head:
+          fc_decay: 1.0e-05
+        Neck:
+          depth: 2
+          dims: 120
+          hidden_dims: 120
+          kernel_size:
+          - 1
+          - 3
+          name: svtr
+          use_guide: true
+    - NRTRHead:
+        max_text_length: 25
+        nrtr_dim: 384
+    name: MultiHead
+  Transform: null
+  algorithm: SVTR_LCNet
+  model_type: rec
+Eval:
+  dataset:
+    data_dir: C:\Users\35459\Desktop\基于OCR的食品外包装文字识别检测系统\model_train\data\
+    label_file_list:
+    - C:\Users\35459\Desktop\基于OCR的食品外包装文字识别检测系统\model_train\data\rec_gt_val.txt
+    name: SimpleDataSet
+    transforms:
+    - DecodeImage:
+        channel_first: false
+        img_mode: BGR
+    - MultiLabelEncode:
+        gtc_encode: NRTRLabelEncode
+    - RecResizeImg:
+        image_shape:
+        - 3
+        - 48
+        - 640
+    - KeepKeys:
+        keep_keys:
+        - image
+        - label_ctc
+        - label_gtc
+        - length
+        - valid_ratio
+  loader:
+    batch_size_per_card: 4
+    drop_last: false
+    num_workers: 4
+    shuffle: false
+Global:
+  cal_metric_during_train: true
+  character_dict_path: C:\Users\35459\Desktop\基于OCR的食品外包装文字识别检测系统\model_train\PaddleOCR\ppocr\utils\ppocr_keys_v1.txt
+  checkpoints: null
+  debug: false
+  distributed: true
+  epoch_num: 10
+  eval_batch_epoch: 1
+  eval_batch_step:
+  - 0
+  - 2000
+  freeze_backbone: false
+  infer_img: doc/imgs_words/ch/word_1.jpg
+  infer_mode: false
+  log_smooth_window: 20
+  max_text_length: 25
+  pretrained_model: C:\Users\35459\Desktop\基于OCR的食品外包装文字识别检测系统\model_train\pretrain_models\ch_PP-OCRv4_rec_train\student
+  print_batch_step: 1
+  save_epoch_step: 10
+  save_inference_dir: null
+  save_model_dir: C:\Users\35459\Desktop\基于OCR的食品外包装文字识别检测系统\model_train\output\rec_ppocr_v4
+  save_res_path: ./output/rec/predicts_ppocrv3.txt
+  use_gpu: false
+  use_space_char: true
+  use_visualdl: false
+Loss:
+  loss_config_list:
+  - CTCLoss: null
+  - NRTRLoss: null
+  name: MultiLoss
+Metric:
+  main_indicator: acc
+  name: RecMetric
+Optimizer:
+  beta1: 0.9
+  beta2: 0.999
+  lr:
+    learning_rate: 0.001
+    name: Cosine
+    warmup_epoch: 5
+  name: Adam
+  regularizer:
+    factor: 3.0e-05
+    name: L2
+PostProcess:
+  name: CTCLabelDecode
+Train:
+  dataset:
+    data_dir: C:\Users\35459\Desktop\基于OCR的食品外包装文字识别检测系统\model_train\data\
+    ds_width: false
+    ext_op_transform_idx: 1
+    label_file_list:
+    - C:\Users\35459\Desktop\基于OCR的食品外包装文字识别检测系统\model_train\data\rec_gt_train.txt
+    name: MultiScaleDataSet
+    transforms:
+    - DecodeImage:
+        channel_first: false
+        img_mode: BGR
+    - RecConAug:
+        ext_data_num: 2
+        image_shape:
+        - 48
+        - 640
+        - 3
+        max_text_length: 25
+        prob: 0.5
+    - RecAug: null
+    - MultiLabelEncode:
+        gtc_encode: NRTRLabelEncode
+    - KeepKeys:
+        keep_keys:
+        - image
+        - label_ctc
+        - label_gtc
+        - length
+        - valid_ratio
+  loader:
+    batch_size_per_card: 4
+    drop_last: true
+    num_workers: 0
+    shuffle: true
+  sampler:
+    divided_factor:
+    - 8
+    - 16
+    first_bs: 4
+    fix_bs: false
+    is_training: true
+    name: MultiScaleSampler
+    scales:
+    - - 640
+      - 32
+    - - 640
+      - 48
+    - - 640
+      - 64
