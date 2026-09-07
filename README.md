@@ -98,3 +98,7 @@ python manage.py runserver
 - `docs/模型微调实训文档.md` — 模型微调实训流程
 - `docs/模型基础评估报告模板.md` — 模型评估报告模板
 - 《实训部署手册》《模型基础评估报告》等 Word 文档由本地维护，不入库
+
+## 许可证
+
+本项目基于 [MIT License](LICENSE) 开源。
